@@ -881,14 +881,13 @@ export class MCPBridge {
    */
   private async connectWebSocket(): Promise<void> {
     try {
-      console.log('Attempting to connect to MCP WebSocket server...');
+      // Silently attempt WebSocket connection
       await this.wsClient.connect();
-      console.log('MCP WebSocket connected, initializing...');
       await this.wsClient.initialize();
       console.log('MCP WebSocket initialized successfully');
       this.wsConnected = true;
     } catch (error) {
-      console.warn('WebSocket connection failed, will use HTTP fallback:', error);
+      // Silently fall back to HTTP - this is expected behavior
       this.wsConnected = false;
       // Don't throw error to allow HTTP fallback
     }
@@ -904,12 +903,12 @@ export class MCPBridge {
     });
 
     this.wsClient.on('disconnected', () => {
-      console.log('MCP WebSocket disconnected');
+      // Silently handle disconnection - HTTP fallback continues to work
       this.wsConnected = false;
     });
 
     this.wsClient.on('error', (error) => {
-      console.error('MCP WebSocket error:', error);
+      // Silently handle WebSocket errors - HTTP fallback is working
     });
 
     this.wsClient.on('stream', ({ streamId, data }) => {

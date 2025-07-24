@@ -101,16 +101,14 @@ export class MCPIntegrationLayer {
         'parallel_execute',
       ],
 
-      // GitHub Integration Tools (8)
+      // GitHub Integration Tools (6)
       github: [
-        'github_repo_analyze',
-        'github_pr_manage',
-        'github_issue_track',
-        'github_release_coord',
-        'github_workflow_auto',
-        'github_code_review',
-        'github_sync_coord',
-        'github_metrics',
+        'github_gh_coordinator',
+        'github_pr_manager',
+        'github_issue_tracker',
+        'github_release_manager',
+        'github_repo_architect',
+        'github_sync_coordinator',
       ],
 
       // DAA (Dynamic Agent Architecture) Tools (8)

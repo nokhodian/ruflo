@@ -10,6 +10,7 @@ import MCPToolsWebSocket from './components/mcp/MCPToolsWebSocket'
 import Terminal from './components/shared/Terminal'
 import Navigation from './components/shared/Navigation'
 import MemoryExplorerV2 from './components/memory/MemoryExplorerV2'
+import ClaudeFlow from './components/claude-flow/ClaudeFlow'
 
 // Stores
 import { useSwarmStore } from './stores/swarmStore'
@@ -68,6 +69,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/swarm" element={<SwarmViewEnhanced />} />
+                <Route path="/claude-flow" element={<ClaudeFlow />} />
                 <Route path="/mcp-tools" element={<MCPToolsWebSocket />} />
                 <Route path="/memory" element={<MemoryExplorerV2 />} />
                 <Route path="/terminal" element={<Terminal />} />

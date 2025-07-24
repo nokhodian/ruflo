@@ -1072,6 +1072,99 @@ app.post('/api/mcp/execute', async (req, res) => {
   }
 });
 
+// Get command templates from .claude/commands/
+app.get('/api/commands/templates', async (req, res) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const commandsDir = path.join(process.cwd(), '..', '..', '.claude', 'commands');
+    
+    if (!fs.existsSync(commandsDir)) {
+      return res.json({ templates: [], error: 'Commands directory not found' });
+    }
+    
+    const categories = {};
+    
+    // Read all subdirectories and files
+    function readDirectory(dir, categoryName = '') {
+      const items = fs.readdirSync(dir, { withFileTypes: true });
+      
+      for (const item of items) {
+        const fullPath = path.join(dir, item.name);
+        
+        if (item.isDirectory()) {
+          // Recursive read subdirectories
+          const subCategoryName = categoryName ? `${categoryName}/${item.name}` : item.name;
+          readDirectory(fullPath, subCategoryName);
+        } else if (item.name.endsWith('.md') && !item.name.toLowerCase().includes('readme')) {
+          // Read markdown files (skip README files)
+          try {
+            const content = fs.readFileSync(fullPath, 'utf8');
+            const category = categoryName || 'root';
+            
+            if (!categories[category]) {
+              categories[category] = [];
+            }
+            
+            categories[category].push({
+              name: item.name.replace('.md', ''),
+              filename: item.name,
+              path: fullPath,
+              content: content,
+              size: content.length
+            });
+          } catch (error) {
+            console.error(`Failed to read command file ${fullPath}:`, error.message);
+          }
+        }
+      }
+    }
+    
+    readDirectory(commandsDir);
+    
+    res.json({ templates: categories, commandsDir });
+  } catch (error) {
+    console.error('Failed to load command templates:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get specific command template content
+app.get('/api/commands/template/:category/:name', async (req, res) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const { category, name } = req.params;
+    const commandsDir = path.join(process.cwd(), '..', '..', '.claude', 'commands');
+    
+    let filePath;
+    if (category === 'root') {
+      filePath = path.join(commandsDir, `${name}.md`);
+    } else {
+      filePath = path.join(commandsDir, category, `${name}.md`);
+    }
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Command template not found' });
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf8');
+    
+    res.json({
+      name,
+      category,
+      filename: `${name}.md`,
+      content,
+      path: filePath
+    });
+  } catch (error) {
+    console.error('Failed to load command template:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get MCP handler status and statistics
 app.get('/api/mcp/status', async (req, res) => {
   try {
@@ -1707,11 +1800,245 @@ const io = new Server(httpServer, {
   }
 });
 
+// Setup WebSocket handlers directly in JavaScript (no TypeScript imports)
+try {
+  console.log('🔌 Setting up WebSocket handlers...');
+  
+  // Setup WebSocket handlers with basic integrations
+  setupWebSocketHandlers(io);
+  
+  console.log('✅ WebSocket handlers successfully set up');
+} catch (error) {
+  console.error('❌ Failed to setup WebSocket handlers:', error);
+  console.log('🔄 Falling back to basic terminal handler...');
+}
+
+// Store active Claude processes for each socket
+const activeClaudeProcesses = new Map();
+
+// WebSocket handlers setup function
+function setupWebSocketHandlers(io) {
+  console.log('🔌 Setting up WebSocket handlers...');
+
+  io.on('connection', (socket) => {
+    console.log(`👤 Client connected: ${socket.id}`);
+
+    // Handle MCP tool discovery
+    socket.on('mcp:tools:discover', async () => {
+      try {
+        const mcpHandler = new SimpleMCPHandler();
+        const tools = mcpHandler.availableTools;
+        
+        socket.emit('mcp:tools:list', {
+          tools,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        socket.emit('error', {
+          message: 'Failed to discover MCP tools',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    // Handle MCP tool execution
+    socket.on('mcp:tool:execute', async (data) => {
+      try {
+        console.log(`🔧 Executing MCP tool: ${data.toolName} (${data.executionId})`);
+        
+        const mcpHandler = new SimpleMCPHandler();
+        const result = await mcpHandler.executeTool(data.toolName, data.parameters);
+        
+        socket.emit('mcp:tool:response', {
+          executionId: data.executionId,
+          success: result.success,
+          result: result.data,
+          error: result.error,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error(`❌ MCP tool execution error:`, error);
+        
+        socket.emit('mcp:tool:response', {
+          executionId: data.executionId,
+          success: false,
+          error: error.message || 'Tool execution failed',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    // Handle Claude Flow execution with proper process tracking
+    socket.on('claude-flow:execute', async (data) => {
+      console.log(`🎯 Claude Flow execution:`, {
+        hasUserPrompt: !!data.userPrompt,
+        hasTemplate: !!data.template,
+        templateName: data.template?.name
+      });
+      
+      // Kill any existing process for this socket
+      if (activeClaudeProcesses.has(socket.id)) {
+        console.log('🔪 Killing existing Claude process for socket:', socket.id);
+        const existingProcess = activeClaudeProcesses.get(socket.id);
+        existingProcess.kill('SIGKILL');
+        activeClaudeProcesses.delete(socket.id);
+      }
+      
+      try {
+        // Use the combined prompt directly as a command argument
+        const combinedPrompt = data.userPrompt && data.template 
+          ? `${data.userPrompt}\n\n--- Using Template: ${data.template.name} ---\n${data.template.content}`
+          : data.userPrompt || data.template?.content || '';
+          
+        const executable = 'claude';
+        const args = [
+          combinedPrompt, // Pass the prompt directly as argument
+          '-p', // Print mode
+          '--output-format', 'stream-json',
+          '--verbose',
+          '--dangerously-skip-permissions'
+        ];
+        
+        const options = {
+          cwd: data.options?.cwd || process.cwd(),
+          shell: false,
+          env: { ...process.env }
+        };
+        
+        console.log('🚀 Executing claude with JSON input format');
+        
+        // Use pty.spawn for exact terminal pattern
+        const claudeProcess = pty.spawn(executable, args, {
+          name: 'xterm-color',
+          cols: 120,
+          rows: 30,
+          cwd: options.cwd,
+          env: options.env
+        });
+        
+        console.log('📝 Using combined prompt:', {
+          userPromptLength: data.userPrompt?.length || 0,
+          templateName: data.template?.name,
+          totalLength: combinedPrompt.length
+        });
+        
+        // Store the process for this socket
+        activeClaudeProcesses.set(socket.id, claudeProcess);
+        console.log(`📝 Stored Claude process for socket: ${socket.id}`);
+        
+        let processKilled = false;
+        
+        // No need to write input since we pass it as argument
+        
+        claudeProcess.onData((data) => {
+          if (!processKilled) {
+            socket.emit('claude-flow:output', {
+              sessionId: socket.id,
+              data: data,
+              type: 'stdout'
+            });
+          }
+        });
+        
+        claudeProcess.onExit((exitCode) => {
+          console.log(`🏁 Claude process exited for socket: ${socket.id}`);
+          activeClaudeProcesses.delete(socket.id);
+          
+          if (!processKilled) {
+            socket.emit('claude-flow:complete', {
+              exitCode: exitCode.exitCode,
+              signal: exitCode.signal,
+              timestamp: new Date().toISOString()
+            });
+          }
+        });
+        
+        // Send creation confirmation
+        socket.emit('claude-flow:created', {
+          sessionId: socket.id,
+          cwd: options.cwd,
+          userPrompt: data.userPrompt,
+          template: data.template?.name,
+          combinedPromptLength: combinedPrompt.length,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (error) {
+        console.error(`❌ Claude Flow execution error:`, error);
+        activeClaudeProcesses.delete(socket.id);
+        socket.emit('claude-flow:error', {
+          message: error.message || 'Failed to execute Claude Flow command',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    // Handle Claude Flow stop
+    socket.on('claude-flow:stop', () => {
+      console.log(`🛑 Stop request received for socket: ${socket.id}`);
+      
+      if (activeClaudeProcesses.has(socket.id)) {
+        const claudeProcess = activeClaudeProcesses.get(socket.id);
+        console.log('🔪 Killing Claude process with SIGKILL...');
+        
+        try {
+          // First try SIGTERM, then SIGKILL if needed
+          claudeProcess.kill('SIGTERM');
+          
+          setTimeout(() => {
+            if (activeClaudeProcesses.has(socket.id)) {
+              console.log('🔪 Force killing with SIGKILL...');
+              claudeProcess.kill('SIGKILL');
+            }
+          }, 2000);
+          
+          activeClaudeProcesses.delete(socket.id);
+          
+          socket.emit('claude-flow:complete', {
+            exitCode: -1,
+            signal: 'SIGTERM',
+            stopped: true,
+            timestamp: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('❌ Error killing Claude process:', error);
+          socket.emit('claude-flow:error', {
+            message: 'Failed to stop Claude process',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } else {
+        console.log('⚠️ No active Claude process found for socket:', socket.id);
+        socket.emit('claude-flow:complete', {
+          exitCode: 0,
+          signal: 'NONE',
+          stopped: true,
+          message: 'No active process to stop',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log(`👤 Client disconnected: ${socket.id} (${reason})`);
+      
+      // Clean up any active processes
+      if (activeClaudeProcesses.has(socket.id)) {
+        console.log('🧹 Cleaning up Claude process for disconnected socket');
+        const claudeProcess = activeClaudeProcesses.get(socket.id);
+        claudeProcess.kill('SIGKILL');
+        activeClaudeProcesses.delete(socket.id);
+      }
+    });
+  });
+}
+
 // Terminal sessions storage
 const terminals = new Map();
 const socketToSession = new Map(); // Map socket.id to sessionId
 
-// Socket.IO connection handler
+// Basic Socket.IO connection handler for terminal functionality
 io.on('connection', (socket) => {
   console.log('Terminal client connected:', socket.id);
   

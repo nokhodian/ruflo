@@ -231,29 +231,88 @@ class ClaudeFlowMCPServer {
       },
 
       // GitHub Integration Tools (8)
-      github_repo_analyze: {
-        name: 'github_repo_analyze',
-        description: 'Repository analysis',
+      github_gh_coordinator: {
+        name: 'github_gh_coordinator',
+        description: 'GitHub workflow orchestration and CI/CD automation',
         inputSchema: {
           type: 'object',
           properties: {
-            repo: { type: 'string' },
-            analysis_type: { type: 'string', enum: ['code_quality', 'performance', 'security'] },
+            objective: { type: 'string', description: 'What you want to accomplish (e.g., "setup CI/CD pipeline")' },
+            auto_approve: { type: 'boolean', description: 'Automatically approve safe changes', default: false },
+            dry_run: { type: 'boolean', description: 'Preview changes without applying', default: false },
+            verbose: { type: 'boolean', description: 'Detailed operation logging', default: false },
           },
-          required: ['repo'],
+          required: ['objective'],
         },
       },
-      github_pr_manage: {
-        name: 'github_pr_manage',
-        description: 'Pull request management',
+      github_pr_manager: {
+        name: 'github_pr_manager',
+        description: 'Pull request management with multi-reviewer coordination',
         inputSchema: {
           type: 'object',
           properties: {
-            repo: { type: 'string' },
-            pr_number: { type: 'number' },
-            action: { type: 'string', enum: ['review', 'merge', 'close'] },
+            objective: { type: 'string', description: 'What you want to accomplish (e.g., "create feature PR with tests")' },
+            auto_approve: { type: 'boolean', description: 'Automatically approve safe changes', default: false },
+            dry_run: { type: 'boolean', description: 'Preview changes without applying', default: false },
+            verbose: { type: 'boolean', description: 'Detailed operation logging', default: false },
           },
-          required: ['repo', 'action'],
+          required: ['objective'],
+        },
+      },
+      github_issue_tracker: {
+        name: 'github_issue_tracker',
+        description: 'Issue management and project coordination',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            objective: { type: 'string', description: 'What you want to accomplish (e.g., "analyze and label issues")' },
+            auto_approve: { type: 'boolean', description: 'Automatically approve safe changes', default: false },
+            dry_run: { type: 'boolean', description: 'Preview changes without applying', default: false },
+            verbose: { type: 'boolean', description: 'Detailed operation logging', default: false },
+          },
+          required: ['objective'],
+        },
+      },
+      github_release_manager: {
+        name: 'github_release_manager',
+        description: 'Release coordination and deployment pipelines',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            objective: { type: 'string', description: 'What you want to accomplish (e.g., "prepare v2.0.0 release")' },
+            auto_approve: { type: 'boolean', description: 'Automatically approve safe changes', default: false },
+            dry_run: { type: 'boolean', description: 'Preview changes without applying', default: false },
+            verbose: { type: 'boolean', description: 'Detailed operation logging', default: false },
+          },
+          required: ['objective'],
+        },
+      },
+      github_repo_architect: {
+        name: 'github_repo_architect',
+        description: 'Repository structure optimization',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            objective: { type: 'string', description: 'What you want to accomplish (e.g., "optimize monorepo structure")' },
+            auto_approve: { type: 'boolean', description: 'Automatically approve safe changes', default: false },
+            dry_run: { type: 'boolean', description: 'Preview changes without applying', default: false },
+            verbose: { type: 'boolean', description: 'Detailed operation logging', default: false },
+          },
+          required: ['objective'],
+        },
+      },
+      github_sync_coordinator: {
+        name: 'github_sync_coordinator',
+        description: 'Multi-package synchronization and version alignment',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            objective: { type: 'string', description: 'What you want to accomplish (e.g., "sync versions across packages")' },
+            auto_approve: { type: 'boolean', description: 'Automatically approve safe changes', default: false },
+            dry_run: { type: 'boolean', description: 'Preview changes without applying', default: false },
+            verbose: { type: 'boolean', description: 'Detailed operation logging', default: false },
+          },
+          required: ['objective'],
         },
       },
 
@@ -697,60 +756,6 @@ class ClaudeFlowMCPServer {
       },
 
       // GitHub Integration Tools
-      github_issue_track: {
-        name: 'github_issue_track',
-        description: 'Issue tracking & triage',
-        inputSchema: {
-          type: 'object',
-          properties: { repo: { type: 'string' }, action: { type: 'string' } },
-          required: ['repo', 'action'],
-        },
-      },
-      github_release_coord: {
-        name: 'github_release_coord',
-        description: 'Release coordination',
-        inputSchema: {
-          type: 'object',
-          properties: { repo: { type: 'string' }, version: { type: 'string' } },
-          required: ['repo', 'version'],
-        },
-      },
-      github_workflow_auto: {
-        name: 'github_workflow_auto',
-        description: 'Workflow automation',
-        inputSchema: {
-          type: 'object',
-          properties: { repo: { type: 'string' }, workflow: { type: 'object' } },
-          required: ['repo', 'workflow'],
-        },
-      },
-      github_code_review: {
-        name: 'github_code_review',
-        description: 'Automated code review',
-        inputSchema: {
-          type: 'object',
-          properties: { repo: { type: 'string' }, pr: { type: 'number' } },
-          required: ['repo', 'pr'],
-        },
-      },
-      github_sync_coord: {
-        name: 'github_sync_coord',
-        description: 'Multi-repo sync coordination',
-        inputSchema: {
-          type: 'object',
-          properties: { repos: { type: 'array' } },
-          required: ['repos'],
-        },
-      },
-      github_metrics: {
-        name: 'github_metrics',
-        description: 'Repository metrics',
-        inputSchema: {
-          type: 'object',
-          properties: { repo: { type: 'string' } },
-          required: ['repo'],
-        },
-      },
 
       // Additional DAA Tools
       daa_resource_alloc: {
@@ -1611,6 +1616,15 @@ class ClaudeFlowMCPServer {
           timestamp: new Date().toISOString(),
         };
 
+      // GitHub Integration Tools
+      case 'github_gh_coordinator':
+      case 'github_pr_manager':
+      case 'github_issue_tracker':
+      case 'github_release_manager':
+      case 'github_repo_architect':
+      case 'github_sync_coordinator':
+        return await this.executeGitHubTool(name, args);
+
       default:
         return {
           success: true,
@@ -1669,6 +1683,89 @@ class ClaudeFlowMCPServer {
 
       default:
         throw new Error(`Unknown resource: ${uri}`);
+    }
+  }
+
+  async executeGitHubTool(toolName, args) {
+    const { spawn } = await import('child_process');
+    const { promisify } = await import('util');
+    
+    // Map MCP tool names to CLI commands
+    const toolMap = {
+      'github_gh_coordinator': 'gh-coordinator',
+      'github_pr_manager': 'pr-manager', 
+      'github_issue_tracker': 'issue-tracker',
+      'github_release_manager': 'release-manager',
+      'github_repo_architect': 'repo-architect',
+      'github_sync_coordinator': 'sync-coordinator'
+    };
+    
+    const cliMode = toolMap[toolName];
+    if (!cliMode) {
+      return {
+        success: false,
+        error: `Unknown GitHub tool: ${toolName}`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    
+    // Build command arguments
+    const cmdArgs = ['github', cliMode, args.objective || ''];
+    
+    if (args.auto_approve) cmdArgs.push('--auto-approve');
+    if (args.dry_run) cmdArgs.push('--dry-run');
+    if (args.verbose) cmdArgs.push('--verbose');
+    
+    try {
+      return new Promise((resolve) => {
+        const process = spawn('npx', ['claude-flow@alpha', ...cmdArgs], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: process.cwd(),
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        process.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        process.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        process.on('close', (code) => {
+          resolve({
+            success: code === 0,
+            tool: toolName,
+            mode: cliMode,
+            objective: args.objective,
+            output: stdout,
+            error: code !== 0 ? stderr : undefined,
+            exitCode: code,
+            command: `npx claude-flow@alpha ${cmdArgs.join(' ')}`,
+            timestamp: new Date().toISOString(),
+          });
+        });
+        
+        // Set timeout
+        setTimeout(() => {
+          process.kill();
+          resolve({
+            success: false,
+            error: 'Command timeout after 30 seconds',
+            tool: toolName,
+            timestamp: new Date().toISOString(),
+          });
+        }, 30000);
+      });
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to execute GitHub command: ${error.message}`,
+        tool: toolName,
+        timestamp: new Date().toISOString(),
+      };
     }
   }
 

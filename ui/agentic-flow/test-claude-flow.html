@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Claude Flow WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Claude Flow WebSocket Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testCommand()">Test Command</button>
+    <pre id="output"></pre>
+
+    <script>
+        let socket;
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            output.textContent += message + '\n';
+            console.log(message);
+        }
+
+        function testConnection() {
+            log('Connecting to WebSocket server...');
+            socket = io('ws://localhost:3001', {
+                transports: ['websocket']
+            });
+
+            socket.on('connect', () => {
+                log('✅ Connected! Socket ID: ' + socket.id);
+            });
+
+            socket.on('disconnect', (reason) => {
+                log('❌ Disconnected: ' + reason);
+            });
+
+            socket.on('error', (error) => {
+                log('❌ Error: ' + error);
+            });
+
+            socket.on('connect_error', (error) => {
+                log('❌ Connection error: ' + error.message);
+            });
+
+            // Listen for any event
+            socket.onAny((eventName, ...args) => {
+                log('📨 Event: ' + eventName);
+                log('   Data: ' + JSON.stringify(args));
+            });
+        }
+
+        function testCommand() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected! Click "Test Connection" first.');
+                return;
+            }
+
+            log('📤 Sending test command...');
+            
+            // First, let's try a simple echo command
+            const testCommand = 'echo \'{"type":"test","message":"Hello from test"}\''
+            
+            socket.emit('claude-flow:execute', {
+                command: testCommand,
+                options: {
+                    cwd: '/workspaces/claude-code-flow',
+                    shell: true
+                }
+            });
+
+            // Listen for responses
+            socket.on('claude-flow:stream', (data) => {
+                log('📥 Stream data: ' + JSON.stringify(data));
+            });
+
+            socket.on('claude-flow:complete', (data) => {
+                log('✅ Complete: ' + JSON.stringify(data));
+            });
+
+            socket.on('claude-flow:error', (error) => {
+                log('❌ Error: ' + JSON.stringify(error));
+            });
+        }
+    </script>
+</body>
+</html>

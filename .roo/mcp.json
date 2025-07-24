@@ -25,7 +25,12 @@
         "performance_report",
         "workflow_create",
         "workflow_execute",
-        "github_repo_analyze",
+        "github_gh_coordinator",
+        "github_pr_manager",
+        "github_issue_tracker",
+        "github_release_manager",
+        "github_repo_architect",
+        "github_sync_coordinator",
         "features_detect",
         "benchmark_run",
         "terminal_execute"

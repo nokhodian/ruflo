@@ -5,13 +5,15 @@ import {
   Network, 
   Wrench, 
   Terminal as TerminalIcon,
-  Database 
+  Database,
+  Zap
 } from 'lucide-react'
 
 const Navigation: React.FC = () => {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'DASHBOARD' },
     { to: '/swarm', icon: Network, label: 'SWARM' },
+    { to: '/claude-flow', icon: Zap, label: 'CLAUDE FLOW' },
     { to: '/mcp-tools', icon: Wrench, label: 'MCP TOOLS' },
     { to: '/memory', icon: Database, label: 'MEMORY' },
     { to: '/terminal', icon: TerminalIcon, label: 'TERMINAL' },

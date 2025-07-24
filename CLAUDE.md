@@ -930,6 +930,239 @@ Message 3: TodoWrite { todos: [{ id: "3", content: "Task 3", ... }] }
 // This breaks parallel coordination!
 ```
 
+## 🧪 Test-Driven Development (TDD) with Claude Flow
+
+### TDD Coordination Pattern
+
+Claude Flow excels at Test-Driven Development workflows by coordinating test-first approaches across the swarm:
+
+### 🔴 TDD Cycle with Swarms
+
+**1. RED Phase - Write Failing Tests First**
+```javascript
+// Initialize TDD-focused swarm
+mcp__claude-flow__swarm_init { topology: "hierarchical", maxAgents: 6, strategy: "tdd" }
+
+// Spawn specialized TDD agents
+[BatchTool]:
+  - mcp__claude-flow__agent_spawn { type: "tester", name: "Test Designer", capabilities: ["test-design", "requirements"] }
+  - mcp__claude-flow__agent_spawn { type: "analyst", name: "Test Analyst", capabilities: ["coverage", "edge-cases"] }
+  - mcp__claude-flow__agent_spawn { type: "coder", name: "Test Writer", capabilities: ["test-implementation"] }
+  - mcp__claude-flow__agent_spawn { type: "architect", name: "API Designer", capabilities: ["interface-design"] }
+  - mcp__claude-flow__agent_spawn { type: "coder", name: "Implementer", capabilities: ["minimal-implementation"] }
+  - mcp__claude-flow__agent_spawn { type: "reviewer", name: "Refactorer", capabilities: ["code-quality", "patterns"] }
+```
+
+**2. GREEN Phase - Minimal Implementation**
+```javascript
+// Orchestrate workflow
+mcp__claude-flow__task_orchestrate {
+  task: "Implement user authentication with TDD",
+  strategy: "sequential-phases",
+  phases: ["write-tests", "minimal-code", "refactor"]
+}
+
+// Store TDD decisions in memory
+mcp__claude-flow__memory_usage {
+  action: "store",
+  key: "tdd/auth/test-requirements",
+  value: { 
+    testCases: ["login", "logout", "token-refresh"],
+    edgeCases: ["invalid-credentials", "expired-token"],
+    coverage: "95%"
+  }
+}
+```
+
+**3. REFACTOR Phase - Improve Code Quality**
+```javascript
+// Track refactoring patterns
+mcp__claude-flow__neural_patterns {
+  action: "learn",
+  operation: "tdd-refactor",
+  metadata: {
+    before: "minimal-implementation",
+    after: "clean-code",
+    patterns: ["DRY", "SOLID", "clean-architecture"]
+  }
+}
+```
+
+### 🎯 TDD Swarm Agent Roles
+
+**Test Designer Agent:**
+- Analyzes requirements to design comprehensive test suites
+- Identifies edge cases and boundary conditions
+- Creates test specifications before any code exists
+
+**Test Analyst Agent:**
+- Ensures proper test coverage
+- Validates test quality and completeness
+- Monitors for test smells and anti-patterns
+
+**Test Writer Agent:**
+- Implements actual test code
+- Uses appropriate testing frameworks
+- Writes clear, maintainable test cases
+
+**API Designer Agent:**
+- Designs minimal interfaces to pass tests
+- Ensures testability of components
+- Creates mockable boundaries
+
+**Implementer Agent:**
+- Writes ONLY enough code to pass tests
+- Avoids over-engineering
+- Focuses on making tests green
+
+**Refactorer Agent:**
+- Improves code quality after tests pass
+- Applies design patterns
+- Ensures maintainability
+
+### 📋 TDD Task Coordination Example
+
+```javascript
+// Complete TDD workflow in parallel batches
+[BatchTool - Message 1]:
+  // Initialize TDD swarm and agents
+  mcp__claude-flow__swarm_init { topology: "hierarchical", maxAgents: 6, strategy: "tdd" }
+  mcp__claude-flow__agent_spawn { type: "tester", name: "Test Designer" }
+  mcp__claude-flow__agent_spawn { type: "analyst", name: "Coverage Analyst" }
+  mcp__claude-flow__agent_spawn { type: "coder", name: "Test Implementer" }
+  mcp__claude-flow__agent_spawn { type: "coder", name: "Code Implementer" }
+  mcp__claude-flow__agent_spawn { type: "reviewer", name: "Refactorer" }
+  mcp__claude-flow__agent_spawn { type: "coordinator", name: "TDD Lead" }
+
+  // Batch all TDD todos
+  TodoWrite { todos: [
+    { id: "1", content: "Analyze requirements for test cases", status: "in_progress", priority: "high" },
+    { id: "2", content: "Design failing test suite", status: "pending", priority: "high" },
+    { id: "3", content: "Implement test cases", status: "pending", priority: "high" },
+    { id: "4", content: "Run tests to confirm failures", status: "pending", priority: "high" },
+    { id: "5", content: "Write minimal code to pass", status: "pending", priority: "high" },
+    { id: "6", content: "Verify all tests pass", status: "pending", priority: "medium" },
+    { id: "7", content: "Refactor implementation", status: "pending", priority: "medium" },
+    { id: "8", content: "Ensure tests still pass", status: "pending", priority: "high" },
+    { id: "9", content: "Check test coverage", status: "pending", priority: "medium" },
+    { id: "10", content: "Document TDD decisions", status: "pending", priority: "low" }
+  ]}
+
+[BatchTool - Message 2]:
+  // Execute TDD tasks with full coordination
+  Task("You are Test Designer. Analyze requirements and design comprehensive test cases. Use hooks for coordination.")
+  Task("You are Test Implementer. Write failing tests based on design. Store test patterns in memory.")
+  Task("You are Code Implementer. Write ONLY minimal code to pass tests. No over-engineering.")
+  Task("You are Refactorer. After tests pass, improve code quality while maintaining green tests.")
+  Task("You are Coverage Analyst. Ensure 95%+ test coverage and identify missing test cases.")
+
+  // Create test structure
+  Bash("mkdir -p project/{src,tests,coverage}")
+  Write("project/tests/auth.test.js", "// Failing tests first")
+  Write("project/package.json", "{ test framework config }")
+```
+
+### 🧠 TDD Memory Patterns
+
+```javascript
+// Store TDD cycle decisions
+mcp__claude-flow__memory_usage {
+  action: "store",
+  namespace: "tdd",
+  key: "cycle/auth/red-phase",
+  value: {
+    failingTests: ["login_with_invalid_credentials", "logout_without_token"],
+    testFramework: "jest",
+    assertions: 15,
+    coverage: { target: "95%", current: "0%" }
+  }
+}
+
+// Track green phase implementations
+mcp__claude-flow__memory_usage {
+  action: "store",
+  namespace: "tdd",
+  key: "cycle/auth/green-phase",
+  value: {
+    minimalCode: true,
+    linesAdded: 45,
+    testsPassin: 15,
+    coverage: { target: "95%", current: "97%" }
+  }
+}
+
+// Document refactoring improvements
+mcp__claude-flow__memory_usage {
+  action: "store",
+  namespace: "tdd",
+  key: "cycle/auth/refactor-phase",
+  value: {
+    patternsApplied: ["factory", "dependency-injection"],
+    linesReduced: 12,
+    complexity: { before: 8, after: 4 },
+    maintainability: "improved"
+  }
+}
+```
+
+### ✅ TDD Best Practices with Swarms
+
+**1. Parallel Test Development:**
+- Multiple test writers can work on different test suites simultaneously
+- Test analyst validates all tests concurrently
+- Coverage analysis runs in parallel with test execution
+
+**2. Coordinated Test-Code Cycles:**
+- Test Designer and Implementer agents must coordinate through memory
+- No code written until tests are failing
+- Refactoring only after all tests pass
+
+**3. Continuous Coverage Monitoring:**
+- Coverage agent tracks metrics throughout development
+- Alerts when coverage drops below threshold
+- Identifies untested code paths
+
+**4. Pattern Learning:**
+- Neural patterns learn from successful TDD cycles
+- Improves test design over time
+- Suggests better test cases based on history
+
+### 🚀 Advanced TDD Features
+
+**Test-First API Development:**
+```javascript
+mcp__claude-flow__sparc_mode {
+  mode: "tdd",
+  task_description: "Create REST API with full test coverage",
+  options: {
+    coverage_threshold: 95,
+    test_framework: "jest",
+    style: "london-school"
+  }
+}
+```
+
+**Behavioral Test Coordination:**
+```javascript
+// BDD-style test coordination
+mcp__claude-flow__workflow_create {
+  name: "bdd-workflow",
+  steps: [
+    { type: "given", description: "User exists in system" },
+    { type: "when", description: "User attempts login" },
+    { type: "then", description: "User receives auth token" }
+  ]
+}
+```
+
+**Test Performance Optimization:**
+```javascript
+mcp__claude-flow__bottleneck_analyze {
+  component: "test-suite",
+  metrics: ["execution-time", "memory-usage", "parallelization"]
+}
+```
+
 ## Claude Flow v2.0.0 Features
 
 Claude Flow extends the base coordination with:

@@ -119,9 +119,9 @@ export class MCPWebSocketClient extends EventEmitter {
     super();
     
     this.config = {
-      url: config.url || 'ws://localhost:3008',
+      url: config.url || 'ws://127.0.0.1:3008',
       reconnectInterval: config.reconnectInterval || 5000,
-      maxReconnectAttempts: config.maxReconnectAttempts || 10,
+      maxReconnectAttempts: config.maxReconnectAttempts || 0, // Disable auto-reconnect by default
       requestTimeout: config.requestTimeout || 30000
     };
   }
@@ -276,6 +276,7 @@ export class MCPWebSocketClient extends EventEmitter {
   private async createWebSocket(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // Check if WebSocket server is likely running by trying to connect silently
         this.ws = new WebSocket(this.config.url);
         
         const connectTimeout = window.setTimeout(() => {
@@ -283,7 +284,7 @@ export class MCPWebSocketClient extends EventEmitter {
             this.ws?.close();
             reject(new Error('Connection timeout'));
           }
-        }, 10000);
+        }, 2000); // Shorter timeout for faster fallback
 
         this.ws.onopen = () => {
           window.clearTimeout(connectTimeout);
@@ -293,13 +294,16 @@ export class MCPWebSocketClient extends EventEmitter {
 
         this.ws.onclose = (event) => {
           window.clearTimeout(connectTimeout);
-          console.log('MCP WebSocket closed:', event.code, event.reason);
+          // Only log if it was unexpected
+          if (this.connectionState === 'connected') {
+            console.log('MCP WebSocket closed:', event.code, event.reason);
+          }
           this.handleDisconnect();
         };
 
         this.ws.onerror = (error) => {
           window.clearTimeout(connectTimeout);
-          console.error('MCP WebSocket error:', error);
+          // Silently handle connection errors - HTTP fallback is expected
           this.emit('error', error);
           reject(error);
         };

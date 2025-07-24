@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Search, Terminal, Brain, Database, Activity, Workflow, Github, Settings, ChevronRight, Play, Copy, Check, AlertCircle, Loader, Wifi, WifiOff, Zap } from 'lucide-react'
 import { getMCPBridge, MCPBridge, MCPTool, ToolExecutionResult } from '../../api/mcp-bridge'
 
@@ -58,6 +58,10 @@ export default function MCPToolsWebSocket() {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected')
   const [streamingProgress, setStreamingProgress] = useState<string[]>([])
   
+  // Refs for scrollable panels
+  const detailsRef = useRef<HTMLDivElement>(null)
+  const toolListRef = useRef<HTMLDivElement>(null)
+  
   // MCP Bridge (WebSocket + HTTP fallback)
   const [mcpBridge] = useState(() => getMCPBridge())
   
@@ -75,7 +79,7 @@ export default function MCPToolsWebSocket() {
             await mcpBridge.reconnectWebSocket()
             console.log('WebSocket connection established')
           } catch (wsError) {
-            console.log('WebSocket failed, using HTTP fallback:', wsError)
+            // WebSocket failed, HTTP fallback will be used automatically
           }
         }
         
@@ -96,6 +100,20 @@ export default function MCPToolsWebSocket() {
     
     connectAndLoadTools()
   }, [mcpBridge])
+  
+  // Scroll to top when a tool is selected
+  useEffect(() => {
+    if (selectedTool && detailsRef.current) {
+      detailsRef.current.scrollTop = 0
+    }
+  }, [selectedTool])
+
+  // Scroll tool list to top when category changes
+  useEffect(() => {
+    if (toolListRef.current) {
+      toolListRef.current.scrollTop = 0
+    }
+  }, [selectedCategory])
   
   // Helper function to get category info
   const getCategoryInfo = (category: string) => {
@@ -259,14 +277,14 @@ export default function MCPToolsWebSocket() {
           </div>
 
           {/* Tool List */}
-          <div className="flex-1 overflow-y-auto">
-            {filteredTools.map((tool) => {
+          <div className="flex-1 overflow-y-auto" ref={toolListRef}>
+            {filteredTools.map((tool, index) => {
               const categoryInfo = getCategoryInfo(tool.category)
               const IconComponent = categoryInfo.icon
               
               return (
                 <div
-                  key={tool.name}
+                  key={`${tool.category}-${tool.name}-${index}`}
                   onClick={() => setSelectedTool(tool)}
                   className={`p-3 border-b border-green-500/20 cursor-pointer transition-colors hover:bg-green-500/10 ${
                     selectedTool?.name === tool.name ? 'bg-green-500/20' : ''
@@ -296,7 +314,7 @@ export default function MCPToolsWebSocket() {
         </div>
 
         {/* Right Panel - Tool Details */}
-        <div className="w-1/2 flex flex-col">
+        <div className="w-1/2 flex flex-col" ref={detailsRef}>
           {selectedTool ? (
             <>
               {/* Tool Header */}

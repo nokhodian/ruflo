@@ -7,6 +7,8 @@ import { HiveMindIntegration } from './hive-integration.js';
 import { MastraIntegration } from './mastra-integration.js';
 import { TerminalHandler } from './terminal-handler.js';
 import { getMCPHandler, MCPToolResult } from './mcp-handler.js';
+import { spawn } from 'child_process';
+import { Readable } from 'stream';
 
 interface SocketData {
   subscribedSwarms: Set<string>;
@@ -131,7 +133,12 @@ export function setupWebSocket(
   console.log('💻 Terminal handler initialized');
 
   io.on('connection', (socket: Socket) => {
-    console.log(`👤 Client connected: ${socket.id}`);
+    console.log(`\n👤 ====== NEW CLIENT CONNECTION ======`);
+    console.log(`   Socket ID: ${socket.id}`);
+    console.log(`   Transport: ${socket.conn.transport.name}`);
+    console.log(`   Remote Address: ${socket.handshake.address}`);
+    console.log(`   Time: ${new Date().toISOString()}`);
+    console.log(`====================================\n`);
 
     // Initialize socket data
     socket.data = {
@@ -140,6 +147,16 @@ export function setupWebSocket(
       subscribedTasks: new Set(),
       authenticated: true // For now, auto-authenticate
     } as SocketData;
+
+    // Debug all incoming events
+    socket.onAny((eventName, ...args) => {
+      if (!eventName.includes('heartbeat')) { // Skip heartbeat spam
+        console.log(`📨 [Socket ${socket.id}] Event: ${eventName}`);
+        if (args.length > 0) {
+          console.log(`   Args:`, JSON.stringify(args).substring(0, 200) + '...');
+        }
+      }
+    });
 
     // Send welcome message
     socket.emit('connected', {
@@ -466,6 +483,180 @@ export function setupWebSocket(
           success: false,
           error: error.message || 'Tool execution failed',
           executionTime: 0,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    // ===== CLAUDE FLOW EXECUTION =====
+
+    socket.on('claude-flow:execute', async (data: {
+      command: string;
+      options?: {
+        cwd?: string;
+        shell?: boolean;
+      };
+    }) => {
+      console.log(`\n🎯 ====== CLAUDE FLOW EXECUTION RECEIVED ======`);
+      console.log(`📨 Socket ID: ${socket.id}`);
+      console.log(`📋 Command received:`, data.command);
+      console.log(`⚙️  Options:`, data.options);
+      console.log(`==============================================\n`);
+      try {
+        console.log(`\n🚀 ====== CLAUDE FLOW EXECUTION START ======`);
+        console.log(`📋 Full command: ${data.command}`);
+        console.log(`📁 Working directory: ${data.options?.cwd || process.cwd()}`);
+        console.log(`🐚 Shell mode: ${data.options?.shell || false}`);
+        
+        // For shell mode, we need to handle the command differently
+        let executable: string;
+        let args: string[];
+        
+        if (data.options?.shell) {
+          console.log(`🔧 Using shell mode execution`);
+          executable = process.platform === 'win32' ? 'cmd.exe' : '/bin/sh';
+          args = process.platform === 'win32' ? ['/c', data.command] : ['-c', data.command];
+        } else {
+          // Extract the command parts
+          const commandParts = data.command.split(' ');
+          executable = commandParts[0];
+          args = commandParts.slice(1);
+        }
+        
+        console.log(`🎯 Executable: ${executable}`);
+        console.log(`📝 Arguments:`, args);
+        
+        // Default options
+        const options = {
+          cwd: data.options?.cwd || process.cwd(),
+          shell: false, // We're handling shell mode manually above
+          env: { ...process.env }
+        };
+        
+        console.log(`🚀 Spawning process with options:`, options);
+
+        // Spawn the claude process
+        const claudeProcess = spawn(executable, args, options);
+        let processKilled = false;
+        let outputBuffer = '';
+
+        console.log(`✅ Process spawned with PID: ${claudeProcess.pid}`);
+
+        // Handle stdout (streaming JSON)
+        claudeProcess.stdout.on('data', (chunk: Buffer) => {
+          const data = chunk.toString();
+          console.log(`📥 [STDOUT] Received ${data.length} bytes`);
+          console.log(`📥 [STDOUT] Raw data preview:`, data.substring(0, 200) + (data.length > 200 ? '...' : ''));
+          
+          // Buffer the output to handle partial lines
+          outputBuffer += data;
+          const lines = outputBuffer.split('\n');
+          
+          // Keep the last line in the buffer if it's not complete
+          outputBuffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            
+            console.log(`📄 [STDOUT] Processing line: ${line.substring(0, 100)}${line.length > 100 ? '...' : ''}`);
+            
+            try {
+              // Try to parse each line as JSON
+              const event = JSON.parse(line);
+              console.log(`✅ [STDOUT] Valid JSON detected, type: ${event.type}`);
+              socket.emit('claude-flow:stream', { event: line });
+            } catch (e) {
+              // If not JSON, send as raw output
+              console.log(`⚠️  [STDOUT] Not JSON, sending as raw output`);
+              socket.emit('claude-flow:stream', { 
+                event: JSON.stringify({
+                  type: 'raw',
+                  data: line
+                })
+              });
+            }
+          }
+        });
+
+        // Handle stderr
+        claudeProcess.stderr.on('data', (chunk: Buffer) => {
+          const error = chunk.toString();
+          console.error(`🔴 [STDERR] Received error output:`, error);
+          socket.emit('claude-flow:error', {
+            message: error,
+            timestamp: new Date().toISOString()
+          });
+        });
+
+        // Handle process exit
+        claudeProcess.on('exit', (code: number | null, signal: string | null) => {
+          console.log(`\n🏁 ====== CLAUDE FLOW PROCESS EXIT ======`);
+          console.log(`   Exit code: ${code}`);
+          console.log(`   Signal: ${signal}`);
+          console.log(`   Process killed: ${processKilled}`);
+          
+          // Process any remaining buffered output
+          if (outputBuffer.trim()) {
+            console.log(`📄 Processing remaining buffer:`, outputBuffer);
+            try {
+              const event = JSON.parse(outputBuffer);
+              socket.emit('claude-flow:stream', { event: outputBuffer });
+            } catch (e) {
+              socket.emit('claude-flow:stream', { 
+                event: JSON.stringify({
+                  type: 'raw',
+                  data: outputBuffer
+                })
+              });
+            }
+          }
+          
+          if (!processKilled) {
+            socket.emit('claude-flow:complete', {
+              exitCode: code,
+              signal,
+              timestamp: new Date().toISOString()
+            });
+          }
+          console.log(`======================================\n`);
+        });
+
+        // Handle process errors
+        claudeProcess.on('error', (error: Error) => {
+          console.error(`\n❌ ====== CLAUDE FLOW PROCESS ERROR ======`);
+          console.error(`   Error name: ${error.name}`);
+          console.error(`   Error message: ${error.message}`);
+          console.error(`   Error stack:`, error.stack);
+          console.error(`   This often means the command executable was not found`);
+          console.error(`========================================\n`);
+          
+          socket.emit('claude-flow:error', {
+            message: error.message,
+            timestamp: new Date().toISOString()
+          });
+        });
+
+        // Handle stop request
+        socket.on('claude-flow:stop', () => {
+          console.log('🛑 Received stop request for Claude Flow process...');
+          processKilled = true;
+          claudeProcess.kill('SIGTERM');
+          socket.emit('claude-flow:complete', {
+            exitCode: -1,
+            signal: 'SIGTERM',
+            stopped: true,
+            timestamp: new Date().toISOString()
+          });
+        });
+
+      } catch (error: any) {
+        console.error(`\n❌ ====== CLAUDE FLOW EXECUTION ERROR ======`);
+        console.error(`   Error:`, error);
+        console.error(`   Stack:`, error.stack);
+        console.error(`==========================================\n`);
+        
+        socket.emit('claude-flow:error', {
+          message: error.message || 'Failed to execute Claude Flow command',
           timestamp: new Date().toISOString()
         });
       }
