@@ -14,7 +14,7 @@ interface Header {
 }
 
 const ApiTester: React.FC<ApiTesterProps> = ({ 
-  initialEndpoint = '/api/v1/health', 
+  initialEndpoint = '/api/health', 
   initialMethod = 'GET',
   onSave 
 }) => {

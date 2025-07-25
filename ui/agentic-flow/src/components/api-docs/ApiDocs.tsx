@@ -173,7 +173,7 @@ const ApiDocs: React.FC = () => {
                   </p>
                   <div className="bg-gray-900 p-4 rounded border border-green-900">
                     <div className="text-xs text-gray-500 mb-2">Base URL</div>
-                    <code className="text-green-400 font-mono">http://localhost:3001/api/v1</code>
+                    <code className="text-green-400 font-mono">http://localhost:3001</code>
                   </div>
                   <div className="bg-gray-900 p-4 rounded border border-green-900">
                     <div className="text-xs text-gray-500 mb-2">WebSocket URL</div>
@@ -219,10 +219,11 @@ const ApiDocs: React.FC = () => {
                     <div className="text-sm text-green-600 mb-2">Initialize a Swarm</div>
                     <div className="bg-gray-900 p-3 rounded border border-green-900">
                       <code className="text-xs text-green-400 font-mono">
-                        POST /api/v1/tools/mcp__claude-flow__swarm_init<br/>
+                        POST /api/hive/init<br/>
                         {"{"}<br/>
                         {"  "}"topology": "mesh",<br/>
-                        {"  "}"maxAgents": 5<br/>
+                        {"  "}"maxAgents": 5,<br/>
+                        {"  "}"name": "production-swarm"<br/>
                         {"}"}
                       </code>
                     </div>
@@ -277,7 +278,7 @@ const ApiDocs: React.FC = () => {
                   </div>
                 ))}
                 <button
-                  onClick={() => createApiTab('/api/v1/health', 'GET')}
+                  onClick={() => createApiTab('/api/health', 'GET')}
                   className="px-3 py-2 bg-gray-900 hover:bg-gray-800 text-green-600 hover:text-green-400 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
@@ -299,7 +300,7 @@ const ApiDocs: React.FC = () => {
                     <Terminal className="w-12 h-12 text-green-600 mx-auto mb-4" />
                     <p className="text-green-600 mb-4">No API test open</p>
                     <button
-                      onClick={() => createApiTab('/api/v1/health', 'GET')}
+                      onClick={() => createApiTab('/api/health', 'GET')}
                       className="px-4 py-2 bg-green-900/30 text-green-400 border border-green-700 rounded hover:bg-green-900/50 transition-colors"
                     >
                       Create New Test

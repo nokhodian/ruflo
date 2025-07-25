@@ -20,53 +20,40 @@ interface ApiEndpointListProps {
 
 const endpoints: Endpoint[] = [
   // Health & Status
-  { path: '/api/v1/health', method: 'GET', category: 'System', description: 'Health check endpoint' },
-  { path: '/api/v1/status', method: 'GET', category: 'System', description: 'System status and metrics' },
+  { path: '/api/health', method: 'GET', category: 'System', description: 'Health check endpoint' },
+  { path: '/api/system/metrics', method: 'GET', category: 'System', description: 'System metrics (CPU, memory)' },
+  { path: '/api/mcp/status', method: 'GET', category: 'System', description: 'MCP server status' },
   
-  // Swarm Management
-  { path: '/api/v1/tools/mcp__claude-flow__swarm_init', method: 'POST', category: 'Swarm', description: 'Initialize a new swarm', 
+  // MCP Tools
+  { path: '/api/mcp/tools', method: 'GET', category: 'MCP', description: 'List all available MCP tools' },
+  { path: '/api/mcp/execute', method: 'POST', category: 'MCP', description: 'Execute an MCP tool',
     parameters: [
-      { name: 'topology', type: 'string', required: true, description: 'Swarm topology: mesh, hierarchical, star, ring' },
-      { name: 'maxAgents', type: 'number', required: false, description: 'Maximum number of agents' },
-      { name: 'strategy', type: 'string', required: false, description: 'Execution strategy' }
+      { name: 'toolName', type: 'string', required: true, description: 'Name of the MCP tool to execute' },
+      { name: 'parameters', type: 'object', required: false, description: 'Tool-specific parameters' },
+      { name: 'options', type: 'object', required: false, description: 'Execution options' }
     ]
   },
-  { path: '/api/v1/tools/mcp__claude-flow__swarm_status', method: 'GET', category: 'Swarm', description: 'Get swarm status' },
-  { path: '/api/v1/tools/mcp__claude-flow__swarm_destroy', method: 'POST', category: 'Swarm', description: 'Destroy a swarm' },
-  { path: '/api/v1/tools/mcp__claude-flow__agent_spawn', method: 'POST', category: 'Swarm', description: 'Spawn a new agent' },
-  { path: '/api/v1/tools/mcp__claude-flow__agent_list', method: 'GET', category: 'Swarm', description: 'List all agents' },
+  { path: '/api/mcp/validate', method: 'POST', category: 'MCP', description: 'Validate tool parameters' },
+  { path: '/api/mcp/metrics', method: 'POST', category: 'MCP', description: 'Submit tool metrics' },
   
-  // Neural Operations
-  { path: '/api/v1/tools/mcp__claude-flow__neural_status', method: 'GET', category: 'Neural', description: 'Neural network status' },
-  { path: '/api/v1/tools/mcp__claude-flow__neural_train', method: 'POST', category: 'Neural', description: 'Train neural patterns' },
-  { path: '/api/v1/tools/mcp__claude-flow__neural_predict', method: 'POST', category: 'Neural', description: 'Make predictions' },
+  // Commands
+  { path: '/api/commands/templates', method: 'GET', category: 'Commands', description: 'Get command templates' },
+  { path: '/api/commands/template/:category/:name', method: 'GET', category: 'Commands', description: 'Get specific template' },
   
-  // Memory Management
-  { path: '/api/v1/tools/mcp__claude-flow__memory_usage', method: 'POST', category: 'Memory', description: 'Store/retrieve memory' },
-  { path: '/api/v1/tools/mcp__claude-flow__memory_search', method: 'POST', category: 'Memory', description: 'Search memory patterns' },
-  { path: '/api/v1/tools/mcp__claude-flow__memory_backup', method: 'POST', category: 'Memory', description: 'Backup memory' },
+  // Hive/Swarm Management
+  { path: '/api/hive/init', method: 'POST', category: 'Hive', description: 'Initialize a new swarm' },
+  { path: '/api/hive/status', method: 'GET', category: 'Hive', description: 'Get hive/swarm status' },
+  { path: '/api/hive/agents', method: 'GET', category: 'Hive', description: 'List all agents' },
+  { path: '/api/hive/agents', method: 'POST', category: 'Hive', description: 'Create new agent' },
+  { path: '/api/hive/tasks', method: 'GET', category: 'Hive', description: 'List all tasks' },
+  { path: '/api/hive/tasks', method: 'POST', category: 'Hive', description: 'Create new task' },
+  { path: '/api/hive/tasks/:taskId', method: 'DELETE', category: 'Hive', description: 'Delete a task' },
+  { path: '/api/hive/activities', method: 'GET', category: 'Hive', description: 'Get activity log' },
   
-  // Performance & Monitoring
-  { path: '/api/v1/tools/mcp__claude-flow__performance_report', method: 'GET', category: 'Performance', description: 'Performance metrics' },
-  { path: '/api/v1/tools/mcp__claude-flow__bottleneck_analyze', method: 'POST', category: 'Performance', description: 'Analyze bottlenecks' },
-  { path: '/api/v1/tools/mcp__claude-flow__token_usage', method: 'GET', category: 'Performance', description: 'Token usage stats' },
-  
-  // Workflow
-  { path: '/api/v1/tools/mcp__claude-flow__workflow_create', method: 'POST', category: 'Workflow', description: 'Create workflow' },
-  { path: '/api/v1/tools/mcp__claude-flow__workflow_execute', method: 'POST', category: 'Workflow', description: 'Execute workflow' },
-  
-  // GitHub Integration
-  { path: '/api/v1/tools/mcp__claude-flow__github_repo_analyze', method: 'POST', category: 'GitHub', description: 'Analyze repository' },
-  { path: '/api/v1/tools/mcp__claude-flow__github_pr_manage', method: 'POST', category: 'GitHub', description: 'Manage pull requests' },
-  
-  // Terminal & Commands
-  { path: '/api/v1/terminal/execute', method: 'POST', category: 'Terminal', description: 'Execute terminal command' },
-  { path: '/api/v1/commands/templates', method: 'GET', category: 'Commands', description: 'Get command templates' },
-  
-  // Sessions
-  { path: '/api/v1/sessions', method: 'GET', category: 'Sessions', description: 'List all sessions' },
-  { path: '/api/v1/sessions/:id', method: 'GET', category: 'Sessions', description: 'Get session details' },
-  { path: '/api/v1/sessions/:id/export', method: 'GET', category: 'Sessions', description: 'Export session data' }
+  // Memory
+  { path: '/api/memory/swarm', method: 'GET', category: 'Memory', description: 'Get swarm memory data' },
+  { path: '/api/memory/hivemind', method: 'GET', category: 'Memory', description: 'Get hivemind memory data' },
+  { path: '/api/memory/store', method: 'POST', category: 'Memory', description: 'Store memory entry' }
 ]
 
 const ApiEndpointList: React.FC<ApiEndpointListProps> = ({ onTestEndpoint }) => {
