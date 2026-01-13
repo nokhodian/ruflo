@@ -194,12 +194,12 @@
 
 | Tag | Version |
 |-----|---------|
-| `latest` (cli) | 3.0.0-alpha.86 |
-| `v3alpha` (cli) | 3.0.0-alpha.86 |
-| `alpha` (cli) | 3.0.0-alpha.86 |
-| `latest` (wrapper) | 3.0.0-alpha.33 |
-| `v3alpha` (wrapper) | 3.0.0-alpha.33 |
-| `alpha` (wrapper) | 3.0.0-alpha.33 |
+| `latest` (cli) | 3.0.0-alpha.87 |
+| `v3alpha` (cli) | 3.0.0-alpha.87 |
+| `alpha` (cli) | 3.0.0-alpha.87 |
+| `latest` (wrapper) | 3.0.0-alpha.34 |
+| `v3alpha` (wrapper) | 3.0.0-alpha.34 |
+| `alpha` (wrapper) | 3.0.0-alpha.34 |
 
 ### Deprecated Versions
 
