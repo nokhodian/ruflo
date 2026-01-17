@@ -138,11 +138,8 @@ loadedCommands.set('embeddings', embeddingsCommand);
 loadedCommands.set('neural', neuralCommand);
 loadedCommands.set('performance', performanceCommand);
 loadedCommands.set('security', securityCommand);
-<<<<<<< HEAD
 loadedCommands.set('ruvector', ruvectorCommand);
-=======
 loadedCommands.set('hive-mind', hiveMindCommand);
->>>>>>> main
 
 // =============================================================================
 // Exports (maintain backwards compatibility)
