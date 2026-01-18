@@ -1135,6 +1135,32 @@ export const CacheQuery = {
 // ============================================================================
 
 /**
+ * Cleanup function for process exit
+ */
+function cleanup(): void {
+  // Stop heartbeat
+  stopHeartbeat();
+
+  // Mark session as inactive
+  if (db && currentSessionId) {
+    try {
+      db.run(
+        'UPDATE active_sessions SET is_active = 0 WHERE session_id = ? AND pid = ?',
+        [currentSessionId, PROCESS_ID]
+      );
+    } catch {
+      // Ignore errors during cleanup
+    }
+  }
+
+  // Persist database
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+  }
+  persistDatabase();
+}
+
+/**
  * Install the interceptor (patches fs module)
  */
 export async function install(): Promise<void> {
@@ -1149,28 +1175,32 @@ export async function install(): Promise<void> {
   (fs as any).readFileSync = interceptedReadFileSync;
   (fs as any).appendFileSync = interceptedAppendFileSync;
 
-  // Handle process exit
-  process.on('exit', () => {
-    if (persistTimer) {
-      clearTimeout(persistTimer);
-      persistDatabase();
-    }
-  });
+  // Handle process exit - cleanup sessions and persist
+  process.on('exit', cleanup);
 
   process.on('SIGINT', () => {
-    persistDatabase();
+    cleanup();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
-    persistDatabase();
+    cleanup();
     process.exit(0);
+  });
+
+  // Also handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    logError(`Uncaught exception: ${error}`);
+    cleanup();
+    process.exit(1);
   });
 
   logInfo('✓ Installed - intercepting Claude Code cache operations');
   logInfo(`  Platform: ${os.platform()}`);
   logInfo(`  Claude dir: ${CLAUDE_DIR}`);
   logInfo(`  DB path: ${INTERCEPTOR_DB_PATH}`);
+  logInfo(`  Process ID: ${PROCESS_ID}`);
+  logInfo(`  Multi-session: ENABLED`);
 }
 
 /**
