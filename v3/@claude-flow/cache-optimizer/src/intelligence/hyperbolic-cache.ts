@@ -786,17 +786,10 @@ export class HyperbolicCacheIntelligence {
       file_write: 0.35,
       tool_result: 0.4,
       bash_output: 0.45,
-      search_result: 0.5,
-      context_summary: 0.55,
-      agent_state: 0.6,
-      memory_snapshot: 0.65,
-      compressed_history: 0.7,
-      semantic_index: 0.75,
-      embedding_cache: 0.8,
-      other: 0.9,            // Far from origin (peripheral)
+      mcp_context: 0.5,      // MCP context in middle
     };
 
-    const typeRadius = typeWeights[entry.type] || 0.5;
+    const typeRadius = typeWeights[entry.type] ?? 0.5;
 
     // Age pushes entry toward periphery
     const age = Date.now() - entry.createdAt;
