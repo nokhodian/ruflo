@@ -289,6 +289,80 @@ Features:
 - **75x faster**: With agentic-flow ONNX integration
 - **Neural substrate**: Integration with RuVector
 
+## 🗄️ Cache Optimizer (@claude-flow/cache-optimizer)
+
+Intelligent Cache Optimization System (ICOS) for zero-compaction context management:
+
+### Features
+- **Zero-Compaction Strategy**: Prevents Claude context compaction via proactive pruning
+- **RuVector Temporal Compression**: Hot/warm/cold tiering with intelligent decay
+- **Flash Attention**: Attention-based relevance scoring (2.49x-7.47x speedup)
+- **Session Isolation**: Multi-agent support with session-partitioned storage
+- **Multi-Instance Safety**: Async mutex + file locking for concurrent access
+- **Security Hardened**: SSRF, command injection, path traversal, header injection protection
+- **Background Handoff**: Delegate tasks to local/remote LLMs (Ollama, OpenAI, Anthropic)
+
+### Configuration Profiles
+
+| Profile | Use Case | Target Utilization |
+|---------|----------|-------------------|
+| `single-agent` | Single Claude instance | 80% |
+| `multi-agent` | Swarm orchestration | 70% |
+| `aggressive` | Maximum retention | 85% |
+| `conservative` | Minimal footprint | 60% |
+| `memory-constrained` | CI/CD, Docker | 50% |
+| `performance` | Speed-optimized | 75% |
+| `development` | Debug logging | 75% |
+| `production` | Stability | 72% |
+
+### Quick Setup
+
+```bash
+# Initialize with profile
+npx @claude-flow/cache-optimizer init --profile multi-agent
+
+# Check status
+npx @claude-flow/cache-optimizer status
+
+# Validate configuration
+npx @claude-flow/cache-optimizer validate
+
+# Run diagnostics
+npx @claude-flow/cache-optimizer doctor --security
+```
+
+### Hook Integration
+
+The init command automatically updates `.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{"command": "npx @claude-flow/cache-optimizer handle-prompt \"$PROMPT\""}],
+    "PostToolUse": [{"command": "npx @claude-flow/cache-optimizer post-tool \"$TOOL_NAME\" \"$TOOL_INPUT\""}],
+    "PreCompact": [{"command": "npx @claude-flow/cache-optimizer prevent-compact"}]
+  }
+}
+```
+
+### Programmatic API
+
+```typescript
+import { createCacheOptimizer, init, handoff } from '@claude-flow/cache-optimizer';
+
+// Initialize
+const optimizer = createCacheOptimizer({ targetUtilization: 0.75 });
+await optimizer.initialize();
+
+// Add entries
+await optimizer.add(content, 'file_read', { filePath: '/path/to/file.ts' });
+
+// Handle hooks
+const result = await optimizer.onUserPromptSubmit(prompt);
+
+// Background handoff to another model
+const response = await handoff('Analyze this code', { provider: 'ollama' });
+```
+
 ## 🐝 Hive-Mind Consensus
 
 ### Topologies

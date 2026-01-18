@@ -1,0 +1,15 @@
+{
+  "profile": "single-agent",
+  "maxContextTokens": 200000,
+  "targetUtilization": 0.8,
+  "pruning": {
+    "strategy": "adaptive",
+    "softThreshold": 0.6,
+    "hardThreshold": 0.75
+  },
+  "temporal": {
+    "hotDuration": 300000,
+    "warmDuration": 1800000,
+    "coldDuration": 3600000
+  }
+}

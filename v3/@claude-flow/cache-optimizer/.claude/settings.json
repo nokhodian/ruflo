@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "command": "npx @claude-flow/cache-optimizer handle-prompt \"$PROMPT\"",
+        "description": "Pre-load relevant context and prevent compaction",
+        "timeout": 5000
+      }
+    ],
+    "PostToolUse": [
+      {
+        "command": "npx @claude-flow/cache-optimizer post-tool \"$TOOL_NAME\" \"$TOOL_INPUT\"",
+        "description": "Cache tool results for future use",
+        "timeout": 3000
+      }
+    ],
+    "PreCompact": [
+      {
+        "command": "npx @claude-flow/cache-optimizer prevent-compact",
+        "description": "Attempt to prevent compaction via intelligent pruning",
+        "timeout": 10000
+      }
+    ]
+  }
+}
