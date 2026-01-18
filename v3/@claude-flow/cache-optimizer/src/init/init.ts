@@ -501,6 +501,39 @@ export async function init(options: InitOptions = {}): Promise<InitResult> {
     errors.push(`Failed to create capabilities.md: ${error}`);
   }
 
+  // Create .claude/commands directory and command file
+  const commandsDir = join(projectRoot, '.claude', 'commands');
+  try {
+    await mkdir(commandsDir, { recursive: true });
+    const commandPath = join(commandsDir, 'cache-optimizer.md');
+    await writeFile(commandPath, generateCommand());
+    changes.push(`Created command: ${commandPath}`);
+  } catch (error) {
+    errors.push(`Failed to create command file: ${error}`);
+  }
+
+  // Create .claude/agents directory and agent file
+  const agentsDir = join(projectRoot, '.claude', 'agents');
+  try {
+    await mkdir(agentsDir, { recursive: true });
+    const agentPath = join(agentsDir, 'cache-manager.yaml');
+    await writeFile(agentPath, generateAgent());
+    changes.push(`Created agent: ${agentPath}`);
+  } catch (error) {
+    errors.push(`Failed to create agent file: ${error}`);
+  }
+
+  // Create skills/cache-optimizer directory and skill file
+  const skillsDir = join(projectRoot, 'skills', 'cache-optimizer');
+  try {
+    await mkdir(skillsDir, { recursive: true });
+    const skillPath = join(skillsDir, 'SKILL.md');
+    await writeFile(skillPath, generateSkill(profile));
+    changes.push(`Created skill: ${skillPath}`);
+  } catch (error) {
+    errors.push(`Failed to create skill file: ${error}`);
+  }
+
   // Create config file
   const configPath = join(projectRoot, '.cache-optimizer.json');
   const config = mergeWithProfile(profileId, cacheConfig);
