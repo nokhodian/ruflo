@@ -1,6 +1,7 @@
 #!/bin/bash
 # Claude Flow V3 - Learning Hooks
 # Integrates learning-service.mjs with session lifecycle
+# Cross-platform compatible: Linux, macOS, Windows (Git Bash/WSL)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -10,6 +11,21 @@ METRICS_DIR="$PROJECT_ROOT/.claude-flow/metrics"
 
 # Ensure directories exist
 mkdir -p "$LEARNING_DIR" "$METRICS_DIR"
+
+# =============================================================================
+# Cross-Platform Date Functions
+# =============================================================================
+get_iso_date() {
+  if date -Iseconds >/dev/null 2>&1; then
+    date -Iseconds
+  else
+    date -u +"%Y-%m-%dT%H:%M:%S+00:00"
+  fi
+}
+
+get_file_timestamp() {
+  date +%Y%m%d_%H%M%S
+}
 
 # Colors
 GREEN='\033[0;32m'
