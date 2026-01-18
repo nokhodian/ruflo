@@ -490,8 +490,8 @@
         "hooks": [
           {
             "type": "command",
-            "timeout": 3000,
-            "command": "/bin/bash -c 'echo \"🚫 BLOCKING MANUAL COMPACTION - Cache optimizer maintaining context\" >&2; exit 2'"
+            "timeout": 8000,
+            "command": "/bin/bash -c 'echo \"🔧 Running cache optimizer compression...\" >&2; node /workspaces/claude-flow/v3/@claude-flow/cache-optimizer/dist/bin/cache-optimizer.js prevent-compact manual 2>&1; echo \"🚫 BLOCKING MANUAL COMPACTION\" >&2; exit 2'"
           }
         ]
       },
@@ -500,8 +500,8 @@
         "hooks": [
           {
             "type": "command",
-            "timeout": 3000,
-            "command": "/bin/bash -c 'echo \"🚫 BLOCKING AUTO-COMPACTION - Cache optimizer preserving full context\" >&2; node /workspaces/claude-flow/v3/@claude-flow/cli/bin/cli.js hooks intelligence --export-state /workspaces/claude-flow/.claude-flow/intelligence-state.json --preserve-patterns true 2>/dev/null; exit 2'"
+            "timeout": 10000,
+            "command": "/bin/bash -c 'echo \"🔧 Running cache optimizer compression (auto)...\" >&2; node /workspaces/claude-flow/v3/@claude-flow/cache-optimizer/dist/bin/cache-optimizer.js prevent-compact auto 2>&1; node /workspaces/claude-flow/v3/@claude-flow/cli/bin/cli.js hooks intelligence --export-state /workspaces/claude-flow/.claude-flow/intelligence-state.json --preserve-patterns true 2>/dev/null; echo \"🚫 BLOCKING AUTO-COMPACTION\" >&2; exit 2'"
           }
         ]
       }
