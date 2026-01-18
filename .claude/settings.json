@@ -493,7 +493,9 @@
       "v3CheckpointManager": ".claude/helpers/checkpoint-manager.sh",
       "v3SwarmMonitor": ".claude/helpers/swarm-monitor.sh",
       "v3SwarmHooks": ".claude/helpers/swarm-hooks.sh",
-      "v3Master": ".claude/helpers/v3.sh"
+      "v3Master": ".claude/helpers/v3.sh",
+      "v3CacheOptimizer": ".claude/helpers/cache-optimizer-hooks.sh",
+      "v3LearningHooks": ".claude/helpers/learning-hooks.sh"
     }
   },
   "v3Configuration": {
