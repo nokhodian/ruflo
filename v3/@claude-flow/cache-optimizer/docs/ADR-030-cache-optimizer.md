@@ -599,11 +599,128 @@ spawn('node', [scriptFile, requestFile], {
 - **Mutex uses queue-based fair scheduling** (no starvation)
 - **Stale lock detection** prevents deadlocks (30s timeout)
 
+## Init System & Configuration Profiles (v3.0.0-alpha.2)
+
+The cache optimizer includes a comprehensive init system for project setup and hook configuration.
+
+### 8.1 CLI Commands
+
+```bash
+# Initialize with auto-detected profile
+npx @claude-flow/cache-optimizer init
+
+# Initialize with specific profile
+npx @claude-flow/cache-optimizer init --profile multi-agent
+
+# Show current status
+npx @claude-flow/cache-optimizer status
+
+# Validate configuration
+npx @claude-flow/cache-optimizer validate
+
+# Reset configuration
+npx @claude-flow/cache-optimizer reset
+
+# List available profiles
+npx @claude-flow/cache-optimizer profiles
+
+# Run diagnostics
+npx @claude-flow/cache-optimizer doctor
+npx @claude-flow/cache-optimizer doctor --security
+```
+
+### 8.2 Configuration Profiles
+
+| Profile | Target Utilization | Pruning | Best For |
+|---------|-------------------|---------|----------|
+| `single-agent` | 80% | Adaptive (0.3) | Single Claude instance |
+| `multi-agent` | 70% | Adaptive (0.5) | Concurrent swarm agents |
+| `aggressive` | 85% | Minimal (0.1) | Maximum context retention |
+| `conservative` | 60% | Aggressive (0.7) | Low memory footprint |
+| `memory-constrained` | 50% | Aggressive (0.8) | CI/CD, containers |
+| `performance` | 75% | Adaptive (0.4) | Speed-optimized |
+| `development` | 75% | Adaptive (0.3) | Debugging, verbose |
+| `production` | 72% | Adaptive (0.4) | Stability-focused |
+
+### 8.3 Settings.json Integration
+
+The init system automatically configures `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "command": "npx @claude-flow/cache-optimizer handle-prompt \"$PROMPT\"",
+        "description": "Pre-load relevant context and prevent compaction",
+        "timeout": 5000
+      }
+    ],
+    "PreCompact": [
+      {
+        "command": "npx @claude-flow/cache-optimizer prevent-compact",
+        "description": "Attempt to prevent compaction via intelligent pruning",
+        "timeout": 10000
+      }
+    ],
+    "PostToolUse": [
+      {
+        "command": "npx @claude-flow/cache-optimizer post-tool \"$TOOL_NAME\" \"$TOOL_INPUT\"",
+        "description": "Cache tool results for future use",
+        "timeout": 3000
+      }
+    ]
+  }
+}
+```
+
+### 8.4 Programmatic API
+
+```typescript
+import { init, status, validate, reset, getProfile } from '@claude-flow/cache-optimizer/init';
+
+// Initialize with options
+const result = await init({
+  profile: 'multi-agent',
+  projectRoot: '/path/to/project',
+  replace: false,  // Merge with existing hooks
+  skipHooks: false,
+  createDataDir: true,
+});
+
+// Check status
+const s = await status();
+console.log(s.initialized, s.profile, s.hookCount);
+
+// Validate configuration
+const v = await validate();
+if (!v.valid) console.error(v.errors);
+
+// Reset
+await reset();
+```
+
+### 8.5 Profile Auto-Detection
+
+The system automatically recommends profiles based on environment:
+
+```typescript
+import { detectRecommendedProfile } from '@claude-flow/cache-optimizer/init';
+
+const profile = detectRecommendedProfile();
+// Returns:
+// - 'memory-constrained' for CI/Docker
+// - 'production' for NODE_ENV=production
+// - 'development' for NODE_ENV=development
+// - 'single-agent' as default
+```
+
 ## Related
 
 - ADR-006: Unified Memory Service (AgentDB integration)
 - ADR-009: Hybrid Memory Backend
 - ADR-026: Intelligent Model Routing
+- ADR-031: Security Doctor (planned)
 
 ## References
 
