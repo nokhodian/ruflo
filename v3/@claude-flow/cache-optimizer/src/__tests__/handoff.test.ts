@@ -161,14 +161,15 @@ describe('CircuitBreaker', () => {
     expect(breaker.canExecute()).toBe(true);
   });
 
-  it('should calculate success rate correctly', () => {
+  it('should calculate failure rate correctly', () => {
     breaker.recordSuccess();
     breaker.recordSuccess();
     breaker.recordSuccess();
     breaker.recordFailure();
 
     const stats = breaker.getStats();
-    expect(stats.successRate).toBe(0.75); // 3/4
+    // failureRate is failures / totalRequests = 1/4 = 0.25
+    expect(stats.failureRate).toBe(0.25);
   });
 });
 
