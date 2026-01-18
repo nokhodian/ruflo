@@ -14,7 +14,6 @@ import type {
   HandoffRequest,
   HandoffResponse,
   HandoffStatus,
-  HandoffConfig,
 } from '../types.js';
 
 /**
