@@ -688,11 +688,30 @@ function interceptedAppendFileSync(
   const sessionId = parseSessionId(pathStr);
   if (!sessionId) return;
 
+  // Auto-register session on first write (multi-session support)
+  if (currentSessionId !== sessionId) {
+    registerSession(sessionId, pathStr);
+  }
+
+  // Acquire lock for concurrent write safety
+  const lockKey = `write:${sessionId}`;
+  if (!acquireLock(lockKey)) {
+    logInfo(`Waiting for lock on session ${sessionId.slice(0, 8)}...`);
+    // Retry after brief delay
+    setTimeout(() => {
+      interceptedAppendFileSync(filePath, data, options);
+    }, 100);
+    return;
+  }
+
   try {
     const content = data.toString();
     const lines = content.split('\n').filter(line => line.trim());
 
-    if (lines.length === 0) return;
+    if (lines.length === 0) {
+      releaseLock(lockKey);
+      return;
+    }
 
     // Get current max line number
     const result = db.exec(
@@ -701,9 +720,9 @@ function interceptedAppendFileSync(
     );
     let lineNumber = (result[0]?.values[0]?.[0] as number) || 0;
 
-    // Batch insert for performance
+    // Batch insert for performance (now includes PID for tracking)
     const insertStmt = db.prepare(
-      'INSERT OR REPLACE INTO messages (session_id, line_number, type, content, timestamp) VALUES (?, ?, ?, ?, ?)'
+      'INSERT OR REPLACE INTO messages (session_id, line_number, type, content, timestamp, pid) VALUES (?, ?, ?, ?, ?, ?)'
     );
 
     for (const line of lines) {
@@ -714,7 +733,7 @@ function interceptedAppendFileSync(
       const type = parsed?.type || 'unknown';
       const timestamp = parsed?.timestamp || null;
 
-      insertStmt.run([sessionId, lineNumber, type, line, timestamp]);
+      insertStmt.run([sessionId, lineNumber, type, line, timestamp, PROCESS_ID]);
 
       // Extract summaries for pattern learning
       if (type === 'summary' && parsed?.summary) {
@@ -729,20 +748,22 @@ function interceptedAppendFileSync(
 
     // Update session metadata
     db.run(`
-      INSERT INTO sessions (session_id, message_count, last_accessed)
-      VALUES (?, ?, datetime('now'))
+      INSERT INTO sessions (session_id, project_path, message_count, last_accessed)
+      VALUES (?, ?, ?, datetime('now'))
       ON CONFLICT(session_id) DO UPDATE SET
         message_count = message_count + ?,
         last_accessed = datetime('now')
-    `, [sessionId, lines.length, lines.length]);
+    `, [sessionId, extractProjectName(pathStr), lines.length, lines.length]);
 
-    logInfo(`Stored ${lines.length} messages for session ${sessionId.slice(0, 8)}...`);
+    logInfo(`Stored ${lines.length} messages for session ${sessionId.slice(0, 8)}... (PID: ${PROCESS_ID})`);
 
     // Schedule database persistence
     schedulePersist();
 
   } catch (error) {
     logError(`Write error: ${error}`);
+  } finally {
+    releaseLock(lockKey);
   }
 }
 
