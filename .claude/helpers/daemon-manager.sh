@@ -124,11 +124,43 @@ stop_daemon() {
     fi
 }
 
+# Start the cache optimizer daemon with GNN/GRNN
+start_cache_optimizer() {
+    local profile="${1:-multi-agent}"
+
+    if is_running "$CACHE_OPTIMIZER_PID"; then
+        log "Cache optimizer already running (PID: $(cat "$CACHE_OPTIMIZER_PID"))"
+        return 0
+    fi
+
+    log "Starting cache optimizer daemon (profile: $profile, GNN/GRNN enabled)..."
+
+    # Initialize cache optimizer with GNN/GRNN
+    "$SCRIPT_DIR/cache-optimizer-hooks.sh" init "$profile" >> "$LOG_DIR/cache-optimizer.log" 2>&1
+
+    # Run periodic GNN training in background
+    nohup bash -c "
+        while true; do
+            sleep 300  # Train every 5 minutes
+            \"$SCRIPT_DIR/cache-optimizer-hooks.sh\" train-gnn hybrid >> \"$LOG_DIR/cache-optimizer.log\" 2>&1
+            sleep 600  # GRNN consolidation every 10 minutes
+            \"$SCRIPT_DIR/cache-optimizer-hooks.sh\" train-grnn >> \"$LOG_DIR/cache-optimizer.log\" 2>&1
+        done
+    " >> "$LOG_DIR/cache-optimizer.log" 2>&1 &
+    local pid=$!
+
+    echo "$pid" > "$CACHE_OPTIMIZER_PID"
+    success "Cache optimizer started (PID: $pid) - GNN/GRNN intelligence enabled"
+
+    return 0
+}
+
 # Start all daemons
 start_all() {
     log "Starting all Claude Flow daemons..."
     start_swarm_monitor "${1:-3}"
     start_metrics_daemon "${2:-5}"
+    start_cache_optimizer "${3:-multi-agent}"
 
     # Initial metrics update
     "$SCRIPT_DIR/swarm-monitor.sh" check > /dev/null 2>&1
