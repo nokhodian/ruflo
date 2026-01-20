@@ -66,6 +66,8 @@ export interface SkillsConfig {
   github: boolean;
   /** Include Flow Nexus skills */
   flowNexus: boolean;
+  /** Include browser automation skills (agent-browser) */
+  browser: boolean;
   /** Include V3 implementation skills */
   v3: boolean;
   /** Include all available skills */
