@@ -1,24 +1,4 @@
-/**
- * Statusline Configuration Generator
- * Creates statusline configuration for V3 progress display
- */
-
-import type { InitOptions, StatuslineConfig } from './types.js';
-
-/**
- * Generate statusline configuration script
- * Matches the advanced format:
- * ▊ Claude Flow V3 ● user  │  ⎇ v3  │  Opus 4.5
- * ─────────────────────────────────────────────────────
- * 🏗️  DDD Domains    [●●●●●]  5/5    ⚡ 1.0x → 2.49x-7.47x
- * 🤖 Swarm  ◉ [12/15]  👥 0    🟢 CVE 3/3    💾 5177MB    📂  56%    🧠  30%
- * 🔧 Architecture    DDD ●100%  │  Security ●CLEAN  │  Memory ●AgentDB  │  Integration ●
- */
-export function generateStatuslineScript(options: InitOptions): string {
-  const config = options.statusline;
-
-  // Generate CommonJS script - use .cjs extension for ES module project compatibility
-  return `#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Claude Flow V3 Statusline Generator
  * Displays real-time V3 implementation progress and system status
@@ -36,35 +16,35 @@ const { execSync } = require('child_process');
 
 // Configuration
 const CONFIG = {
-  enabled: ${config.enabled},
-  showProgress: ${config.showProgress},
-  showSecurity: ${config.showSecurity},
-  showSwarm: ${config.showSwarm},
-  showHooks: ${config.showHooks},
-  showPerformance: ${config.showPerformance},
-  refreshInterval: ${config.refreshInterval},
-  maxAgents: ${options.runtime.maxAgents},
-  topology: '${options.runtime.topology}',
+  enabled: true,
+  showProgress: true,
+  showSecurity: true,
+  showSwarm: true,
+  showHooks: true,
+  showPerformance: true,
+  refreshInterval: 5000,
+  maxAgents: 15,
+  topology: 'hierarchical-mesh',
 };
 
 // ANSI colors
 const c = {
-  reset: '\\x1b[0m',
-  bold: '\\x1b[1m',
-  dim: '\\x1b[2m',
-  red: '\\x1b[0;31m',
-  green: '\\x1b[0;32m',
-  yellow: '\\x1b[0;33m',
-  blue: '\\x1b[0;34m',
-  purple: '\\x1b[0;35m',
-  cyan: '\\x1b[0;36m',
-  brightRed: '\\x1b[1;31m',
-  brightGreen: '\\x1b[1;32m',
-  brightYellow: '\\x1b[1;33m',
-  brightBlue: '\\x1b[1;34m',
-  brightPurple: '\\x1b[1;35m',
-  brightCyan: '\\x1b[1;36m',
-  brightWhite: '\\x1b[1;37m',
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[0;31m',
+  green: '\x1b[0;32m',
+  yellow: '\x1b[0;33m',
+  blue: '\x1b[0;34m',
+  purple: '\x1b[0;35m',
+  cyan: '\x1b[0;36m',
+  brightRed: '\x1b[1;31m',
+  brightGreen: '\x1b[1;32m',
+  brightYellow: '\x1b[1;33m',
+  brightBlue: '\x1b[1;34m',
+  brightPurple: '\x1b[1;35m',
+  brightCyan: '\x1b[1;36m',
+  brightWhite: '\x1b[1;37m',
 };
 
 // Get user info
@@ -302,7 +282,7 @@ function getSwarmStatus() {
     if (isWindows) {
       // Windows: use tasklist
       const ps = execSync('tasklist /FI "IMAGENAME eq node.exe" /NH 2>nul || echo ""', { encoding: 'utf-8' });
-      const nodeProcesses = (ps.match(/node\\.exe/gi) || []).length;
+      const nodeProcesses = (ps.match(/node\.exe/gi) || []).length;
       activeAgents = Math.max(0, Math.floor(nodeProcesses / 3)); // Heuristic
       coordinationActive = nodeProcesses > 0;
     } else {
@@ -354,7 +334,7 @@ function getSystemMetrics() {
     } else {
       // Unix: try ps command, fallback to process.memoryUsage()
       try {
-        const mem = execSync('ps aux | grep -E "(node|agentic|claude)" | grep -v grep | awk \\'{sum += \\$6} END {print int(sum/1024)}\\'', { encoding: 'utf-8' });
+        const mem = execSync('ps aux | grep -E "(node|agentic|claude)" | grep -v grep | awk \'{sum += \$6} END {print int(sum/1024)}\'', { encoding: 'utf-8' });
         memoryMB = parseInt(mem.trim()) || 0;
       } catch (e) {
         memoryMB = Math.floor(process.memoryUsage().heapUsed / 1024 / 1024);
@@ -415,8 +395,6 @@ function getADRStatus() {
     path.join(process.cwd(), 'adr'),
     path.join(process.cwd(), 'ADR'),
     path.join(process.cwd(), '.claude-flow', 'adrs'),
-    path.join(process.cwd(), 'v3', 'implementation', 'adrs'),
-    path.join(process.cwd(), 'implementation', 'adrs'),
   ];
 
   let count = 0;
@@ -426,7 +404,7 @@ function getADRStatus() {
     if (fs.existsSync(adrPath)) {
       try {
         const files = fs.readdirSync(adrPath).filter(f =>
-          f.endsWith('.md') && (f.startsWith('ADR-') || f.startsWith('adr-') || /^\\d{4}-/.test(f))
+          f.endsWith('.md') && (f.startsWith('ADR-') || f.startsWith('adr-') || /^\d{4}-/.test(f))
         );
         count = files.length;
 
@@ -594,8 +572,8 @@ function getTestStats() {
             try {
               const content = fs.readFileSync(path.join(dir, name), 'utf-8');
               // Count it(), test(), describe() patterns
-              const itMatches = (content.match(/\\bit\\s*\\(/g) || []).length;
-              const testMatches = (content.match(/\\btest\\s*\\(/g) || []).length;
+              const itMatches = (content.match(/\bit\s*\(/g) || []).length;
+              const testMatches = (content.match(/\btest\s*\(/g) || []).length;
               testCases += itMatches + testMatches;
             } catch (e) {
               // Estimate 3 tests per file if can't read
@@ -627,7 +605,7 @@ function progressBar(current, total) {
   const width = 5;
   const filled = Math.round((current / total) * width);
   const empty = width - filled;
-  return '[' + '\\u25CF'.repeat(filled) + '\\u25CB'.repeat(empty) + ']';
+  return '[' + '\u25CF'.repeat(filled) + '\u25CB'.repeat(empty) + ']';
 }
 
 // Generate full statusline
@@ -644,39 +622,39 @@ function generateStatusline() {
   const lines = [];
 
   // Header Line
-  let header = \`\${c.bold}\${c.brightPurple}▊ Claude Flow V3 \${c.reset}\`;
-  header += \`\${swarm.coordinationActive ? c.brightCyan : c.dim}● \${c.brightCyan}\${user.name}\${c.reset}\`;
+  let header = `${c.bold}${c.brightPurple}▊ Claude Flow V3 ${c.reset}`;
+  header += `${swarm.coordinationActive ? c.brightCyan : c.dim}● ${c.brightCyan}${user.name}${c.reset}`;
   if (user.gitBranch) {
-    header += \`  \${c.dim}│\${c.reset}  \${c.brightBlue}⎇ \${user.gitBranch}\${c.reset}\`;
+    header += `  ${c.dim}│${c.reset}  ${c.brightBlue}⎇ ${user.gitBranch}${c.reset}`;
   }
-  header += \`  \${c.dim}│\${c.reset}  \${c.purple}\${user.modelName}\${c.reset}\`;
+  header += `  ${c.dim}│${c.reset}  ${c.purple}${user.modelName}${c.reset}`;
   lines.push(header);
 
   // Separator
-  lines.push(\`\${c.dim}─────────────────────────────────────────────────────\${c.reset}\`);
+  lines.push(`${c.dim}─────────────────────────────────────────────────────${c.reset}`);
 
   // Line 1: DDD Domain Progress
   const domainsColor = progress.domainsCompleted >= 3 ? c.brightGreen : progress.domainsCompleted > 0 ? c.yellow : c.red;
   lines.push(
-    \`\${c.brightCyan}🏗️  DDD Domains\${c.reset}    \${progressBar(progress.domainsCompleted, progress.totalDomains)}  \` +
-    \`\${domainsColor}\${progress.domainsCompleted}\${c.reset}/\${c.brightWhite}\${progress.totalDomains}\${c.reset}    \` +
-    \`\${c.brightYellow}⚡ 1.0x\${c.reset} \${c.dim}→\${c.reset} \${c.brightYellow}2.49x-7.47x\${c.reset}\`
+    `${c.brightCyan}🏗️  DDD Domains${c.reset}    ${progressBar(progress.domainsCompleted, progress.totalDomains)}  ` +
+    `${domainsColor}${progress.domainsCompleted}${c.reset}/${c.brightWhite}${progress.totalDomains}${c.reset}    ` +
+    `${c.brightYellow}⚡ 1.0x${c.reset} ${c.dim}→${c.reset} ${c.brightYellow}2.49x-7.47x${c.reset}`
   );
 
   // Line 2: Swarm + Hooks + CVE + Memory + Context + Intelligence
-  const swarmIndicator = swarm.coordinationActive ? \`\${c.brightGreen}◉\${c.reset}\` : \`\${c.dim}○\${c.reset}\`;
+  const swarmIndicator = swarm.coordinationActive ? `${c.brightGreen}◉${c.reset}` : `${c.dim}○${c.reset}`;
   const agentsColor = swarm.activeAgents > 0 ? c.brightGreen : c.red;
   let securityIcon = security.status === 'CLEAN' ? '🟢' : security.status === 'IN_PROGRESS' ? '🟡' : '🔴';
   let securityColor = security.status === 'CLEAN' ? c.brightGreen : security.status === 'IN_PROGRESS' ? c.brightYellow : c.brightRed;
   const hooksColor = hooks.enabled > 0 ? c.brightGreen : c.dim;
 
   lines.push(
-    \`\${c.brightYellow}🤖 Swarm\${c.reset}  \${swarmIndicator} [\${agentsColor}\${String(swarm.activeAgents).padStart(2)}\${c.reset}/\${c.brightWhite}\${swarm.maxAgents}\${c.reset}]  \` +
-    \`\${c.brightPurple}👥 \${system.subAgents}\${c.reset}    \` +
-    \`\${c.brightBlue}🪝 \${hooksColor}\${hooks.enabled}\${c.reset}/\${c.brightWhite}\${hooks.total}\${c.reset}    \` +
-    \`\${securityIcon} \${securityColor}CVE \${security.cvesFixed}\${c.reset}/\${c.brightWhite}\${security.totalCves}\${c.reset}    \` +
-    \`\${c.brightCyan}💾 \${system.memoryMB}MB\${c.reset}    \` +
-    \`\${c.dim}🧠 \${String(system.intelligencePct).padStart(3)}%\${c.reset}\`
+    `${c.brightYellow}🤖 Swarm${c.reset}  ${swarmIndicator} [${agentsColor}${String(swarm.activeAgents).padStart(2)}${c.reset}/${c.brightWhite}${swarm.maxAgents}${c.reset}]  ` +
+    `${c.brightPurple}👥 ${system.subAgents}${c.reset}    ` +
+    `${c.brightBlue}🪝 ${hooksColor}${hooks.enabled}${c.reset}/${c.brightWhite}${hooks.total}${c.reset}    ` +
+    `${securityIcon} ${securityColor}CVE ${security.cvesFixed}${c.reset}/${c.brightWhite}${security.totalCves}${c.reset}    ` +
+    `${c.brightCyan}💾 ${system.memoryMB}MB${c.reset}    ` +
+    `${c.dim}🧠 ${String(system.intelligencePct).padStart(3)}%${c.reset}`
   );
 
   // Line 3: Architecture status with ADRs, AgentDB, Tests
@@ -686,22 +664,22 @@ function generateStatusline() {
   const testColor = tests.testFiles > 0 ? c.brightGreen : c.dim;
 
   lines.push(
-    \`\${c.brightPurple}🔧 Architecture\${c.reset}    \` +
-    \`\${c.cyan}ADRs\${c.reset} \${adrColor}●\${adrs.implemented}/\${adrs.count}\${c.reset}  \${c.dim}│\${c.reset}  \` +
-    \`\${c.cyan}DDD\${c.reset} \${dddColor}●\${String(progress.dddProgress).padStart(3)}%\${c.reset}  \${c.dim}│\${c.reset}  \` +
-    \`\${c.cyan}Security\${c.reset} \${securityColor}●\${security.status}\${c.reset}\`
+    `${c.brightPurple}🔧 Architecture${c.reset}    ` +
+    `${c.cyan}ADRs${c.reset} ${adrColor}●${adrs.implemented}/${adrs.count}${c.reset}  ${c.dim}│${c.reset}  ` +
+    `${c.cyan}DDD${c.reset} ${dddColor}●${String(progress.dddProgress).padStart(3)}%${c.reset}  ${c.dim}│${c.reset}  ` +
+    `${c.cyan}Security${c.reset} ${securityColor}●${security.status}${c.reset}`
   );
 
   // Line 4: Memory, Vectors, Tests
   lines.push(
-    \`\${c.brightCyan}📊 AgentDB\${c.reset}    \` +
-    \`\${c.cyan}Vectors\${c.reset} \${vectorColor}●\${agentdb.vectorCount}\${c.reset}  \${c.dim}│\${c.reset}  \` +
-    \`\${c.cyan}Size\${c.reset} \${c.brightWhite}\${agentdb.dbSizeKB}KB\${c.reset}  \${c.dim}│\${c.reset}  \` +
-    \`\${c.cyan}Tests\${c.reset} \${testColor}●\${tests.testFiles}\${c.reset} \${c.dim}(\${tests.testCases} cases)\${c.reset}  \${c.dim}│\${c.reset}  \` +
-    \`\${c.cyan}Integration\${c.reset} \${swarm.coordinationActive ? c.brightCyan : c.dim}●\${c.reset}\`
+    `${c.brightCyan}📊 AgentDB${c.reset}    ` +
+    `${c.cyan}Vectors${c.reset} ${vectorColor}●${agentdb.vectorCount}${c.reset}  ${c.dim}│${c.reset}  ` +
+    `${c.cyan}Size${c.reset} ${c.brightWhite}${agentdb.dbSizeKB}KB${c.reset}  ${c.dim}│${c.reset}  ` +
+    `${c.cyan}Tests${c.reset} ${testColor}●${tests.testFiles}${c.reset} ${c.dim}(${tests.testCases} cases)${c.reset}  ${c.dim}│${c.reset}  ` +
+    `${c.cyan}Integration${c.reset} ${swarm.coordinationActive ? c.brightCyan : c.dim}●${c.reset}`
   );
 
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 // Generate JSON data
@@ -732,38 +710,4 @@ if (process.argv.includes('--json')) {
   console.log(JSON.stringify(generateJSON()));
 } else {
   console.log(generateStatusline());
-}
-`;
-}
-
-/**
- * Generate statusline hook for shell integration
- */
-export function generateStatuslineHook(options: InitOptions): string {
-  if (!options.statusline.enabled) {
-    return '# Statusline disabled';
-  }
-
-  return `# Claude Flow V3 Statusline Hook
-# Add to your shell RC file (.bashrc, .zshrc, etc.)
-
-# Function to get statusline
-claude_flow_statusline() {
-  local statusline_script="\${CLAUDE_FLOW_DIR:-.claude}/helpers/statusline.cjs"
-  if [ -f "$statusline_script" ]; then
-    node "$statusline_script" 2>/dev/null || echo ""
-  fi
-}
-
-# For bash PS1
-# export PS1='$(claude_flow_statusline) \\n\\$ '
-
-# For zsh RPROMPT
-# export RPROMPT='$(claude_flow_statusline)'
-
-# For starship (add to starship.toml)
-# [custom.claude_flow]
-# command = "node .claude/helpers/statusline.cjs 2>/dev/null"
-# when = "test -f .claude/helpers/statusline.cjs"
-`;
 }
