@@ -225,16 +225,36 @@ export class BrowserService {
   }
 
   /**
-   * Fill input with trajectory tracking
+   * Fill input with trajectory tracking and PII scanning
    */
-  async fill(target: string, value: string, options?: { force?: boolean }): Promise<ActionResult> {
+  async fill(target: string, value: string, options?: { force?: boolean; skipPIICheck?: boolean }): Promise<ActionResult> {
+    // Check for PII in the value
+    if (this.securityScanner && !options?.skipPIICheck) {
+      const scanResult = this.securityScanner.scanContent(value, target);
+      if (scanResult.pii.length > 0) {
+        // Log masked values for security
+        const maskedPII = scanResult.pii.map(p => `${p.type}: ${p.masked}`).join(', ');
+        console.log(`[security] PII detected in form field ${target}: ${maskedPII}`);
+      }
+    }
+
     const result = await this.adapter.fill({
       target,
       value,
       ...options,
     });
-    this.recordStep('fill', { target, value, ...options }, result);
+    this.recordStep('fill', { target, value: this.securityScanner ? '[REDACTED]' : value, ...options }, result);
     return result;
+  }
+
+  /**
+   * Check if content contains PII
+   */
+  scanForPII(content: string, context?: string): ThreatScanResult {
+    if (!this.securityScanner) {
+      return { safe: true, threats: [], pii: [], score: 1, scanDuration: 0 };
+    }
+    return this.securityScanner.scanContent(content, context);
   }
 
   /**
