@@ -1603,11 +1603,8 @@ const postTaskCommand: Command = {
     // Auto-generate task ID if not provided
     const taskId = (ctx.flags.taskId as string) || `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const success = ctx.flags.success as boolean;
-
-    if (success === undefined) {
-      output.printError('Success flag is required. Use --success true/false.');
-      return { success: false, exitCode: 1 };
-    }
+    // Default to true if not specified (defensive for hook invocations)
+    const successValue = success !== undefined ? success : true;
 
     output.printInfo(`Recording outcome for task: ${output.highlight(taskId)}`);
 
