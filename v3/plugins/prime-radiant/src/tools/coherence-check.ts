@@ -70,7 +70,9 @@ function detectContradictions(vectors: Float32Array[], threshold: number): strin
 
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      const similarity = cosineSimilarity(vectors[i], vectors[j]);
+      const vi = vectors[i]!;
+      const vj = vectors[j]!;
+      const similarity = cosineSimilarity(vi, vj);
 
       // Negative similarity indicates potential contradiction
       if (similarity < -0.3) {
