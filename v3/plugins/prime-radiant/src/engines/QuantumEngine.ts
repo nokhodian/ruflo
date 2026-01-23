@@ -330,7 +330,7 @@ export class QuantumEngine implements IQuantumEngine {
 
     for (const comp of components) {
       points.push({
-        birth: birthTime[comp],
+        birth: birthTime[comp] ?? 0,
         death: Infinity,
         persistence: Infinity,
         dimension: 0
