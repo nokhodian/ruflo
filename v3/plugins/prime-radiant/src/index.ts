@@ -147,7 +147,7 @@ export type {
   IPrimeRadiantEventEmitter,
 } from './interfaces';
 
-export { HookPriority } from './interfaces';
+export { HookPriority } from './interfaces.js';
 
 // ============================================================================
 // Schema Exports
