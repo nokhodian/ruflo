@@ -10,9 +10,9 @@
  * - HottEngine: Homotopy Type Theory
  */
 
-export { CohomologyEngine } from './CohomologyEngine';
-export { SpectralEngine } from './SpectralEngine';
-export { CausalEngine } from './CausalEngine';
-export { QuantumEngine } from './QuantumEngine';
-export { CategoryEngine } from './CategoryEngine';
-export { HottEngine } from './HottEngine';
+export { CohomologyEngine } from './CohomologyEngine.js';
+export { SpectralEngine } from './SpectralEngine.js';
+export { CausalEngine } from './CausalEngine.js';
+export { QuantumEngine } from './QuantumEngine.js';
+export { CategoryEngine } from './CategoryEngine.js';
+export { HottEngine } from './HottEngine.js';
