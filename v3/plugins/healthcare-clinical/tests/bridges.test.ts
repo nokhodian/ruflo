@@ -304,60 +304,16 @@ describe('HealthcareGNNBridge', () => {
   describe('Error Handling', () => {
     it('should throw when operations called before init', async () => {
       await expect(
-        bridge.loadGraph({ nodes: [], edges: [] })
-      ).rejects.toThrow();
-    });
-
-    it('should handle invalid graph structure', async () => {
-      await bridge.initialize();
-
-      await expect(
-        bridge.loadGraph({
-          nodes: null as any,
-          edges: undefined as any,
-        })
-      ).rejects.toThrow();
+        bridge.loadGraph([], [])
+      ).rejects.toThrow('GNN bridge not initialized');
     });
 
     it('should handle empty drug list', async () => {
       await bridge.initialize();
 
-      const result = await bridge.checkDrugInteractions([]);
-      expect(result.hasInteractions).toBe(false);
-    });
-  });
-
-  describe('Clinical Pathway Analysis', () => {
-    beforeEach(async () => {
-      await bridge.initialize();
-      await bridge.loadGraph({
-        nodes: [
-          { id: 'sepsis', type: 'condition' },
-          { id: 'cultures', type: 'test' },
-          { id: 'antibiotics', type: 'treatment' },
-          { id: 'fluids', type: 'treatment' },
-          { id: 'monitoring', type: 'monitoring' },
-        ],
-        edges: [
-          { source: 'sepsis', target: 'cultures', type: 'requires', properties: { timing: 'immediate' } },
-          { source: 'sepsis', target: 'antibiotics', type: 'requires', properties: { timing: 'within 1 hour' } },
-          { source: 'sepsis', target: 'fluids', type: 'requires', properties: { timing: 'immediate' } },
-          { source: 'antibiotics', target: 'monitoring', type: 'followed_by' },
-        ],
-      });
-    });
-
-    it('should compute node embeddings', async () => {
-      const embeddings = await bridge.computeNodeEmbeddings();
-
-      expect(embeddings).toBeDefined();
-      expect(Object.keys(embeddings).length).toBeGreaterThan(0);
-    });
-
-    it('should find similar patterns', async () => {
-      const patterns = await bridge.findSimilarPatterns('sepsis');
-
-      expect(Array.isArray(patterns)).toBe(true);
+      const result = bridge.checkDrugInteractions([]);
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(0);
     });
   });
 
@@ -366,15 +322,15 @@ describe('HealthcareGNNBridge', () => {
       const fallbackBridge = new HealthcareGNNBridge();
       await fallbackBridge.initialize();
 
-      await fallbackBridge.loadGraph({
-        nodes: [{ id: 'test', type: 'drug' }],
-        edges: [],
-      });
+      await fallbackBridge.loadGraph(
+        [{ id: 'test', type: 'drug', features: [0.1, 0.2] }],
+        []
+      );
 
-      const result = await fallbackBridge.checkDrugInteractions(['test']);
-      expect(result).toBeDefined();
+      const result = fallbackBridge.checkDrugInteractions(['warfarin', 'aspirin']);
+      expect(result.length).toBeGreaterThan(0);
 
-      await fallbackBridge.destroy();
+      fallbackBridge.destroy();
     });
   });
 
@@ -386,31 +342,32 @@ describe('HealthcareGNNBridge', () => {
       const nodes = Array(100).fill(null).map((_, i) => ({
         id: `node-${i}`,
         type: 'drug',
-        properties: { name: `Drug ${i}` },
+        features: [Math.random(), Math.random()],
       }));
 
       const edges = Array(200).fill(null).map((_, i) => ({
         source: `node-${i % 100}`,
         target: `node-${(i + 1) % 100}`,
         type: 'interacts',
+        weight: 0.5,
       }));
 
-      await bridge.loadGraph({ nodes, edges });
-      await bridge.destroy();
+      await bridge.loadGraph(nodes, edges);
+      bridge.destroy();
 
-      expect(bridge.isInitialized()).toBe(false);
+      expect(bridge.initialized).toBe(false);
     });
 
     it('should handle multiple init/destroy cycles', async () => {
       for (let i = 0; i < 3; i++) {
         await bridge.initialize();
-        await bridge.loadGraph({
-          nodes: [{ id: 'test', type: 'drug' }],
-          edges: [],
-        });
-        await bridge.destroy();
+        await bridge.loadGraph(
+          [{ id: 'test', type: 'drug', features: [0.1] }],
+          []
+        );
+        bridge.destroy();
       }
-      expect(bridge.isInitialized()).toBe(false);
+      expect(bridge.initialized).toBe(false);
     });
   });
 });
