@@ -144,8 +144,8 @@ export class PluginDiscoveryService {
     }
 
     try {
-      // Check if ipnsName is actually a direct CID (starts with 'bafy' or 'Qm')
-      const isDirectCid = registry.ipnsName.startsWith('bafy') || registry.ipnsName.startsWith('Qm');
+      // Check if ipnsName is actually a direct CID (CIDv1 starts with 'baf', CIDv0 starts with 'Qm')
+      const isDirectCid = registry.ipnsName.startsWith('baf') || registry.ipnsName.startsWith('Qm');
 
       let cid: string | null;
       if (isDirectCid) {
