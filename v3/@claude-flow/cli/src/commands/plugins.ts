@@ -136,9 +136,24 @@ const listCommand: Command = {
       output.writeln(output.bold(title));
       output.writeln(output.dim('─'.repeat(70)));
 
+      // Fetch real ratings from Cloud Function (non-blocking)
+      let realRatings: Record<string, { average: number; count: number }> = {};
+      try {
+        const pluginIds = plugins.map(p => p.name);
+        realRatings = await getBulkRatings(pluginIds, 'plugin');
+      } catch {
+        // Fall back to static ratings if Cloud Function unavailable
+      }
+
       if (ctx.flags.format === 'json') {
-        output.printJson(plugins);
-        return { success: true, data: plugins };
+        // Merge real ratings into plugin data
+        const pluginsWithRatings = plugins.map(p => ({
+          ...p,
+          rating: realRatings[p.name]?.average || p.rating,
+          ratingCount: realRatings[p.name]?.count || 0,
+        }));
+        output.printJson(pluginsWithRatings);
+        return { success: true, data: pluginsWithRatings };
       }
 
       output.printTable({
@@ -147,19 +162,25 @@ const listCommand: Command = {
           { key: 'version', header: 'Version', width: 14 },
           { key: 'type', header: 'Type', width: 12 },
           { key: 'downloads', header: 'Downloads', width: 10, align: 'right' },
-          { key: 'rating', header: 'Rating', width: 7, align: 'right' },
+          { key: 'rating', header: 'Rating', width: 10, align: 'right' },
           { key: 'trust', header: 'Trust', width: 10 },
         ],
-        data: plugins.map(p => ({
-          name: p.name,
-          version: p.version,
-          type: p.type,
-          downloads: p.downloads.toLocaleString(),
-          rating: `${p.rating.toFixed(1)}★`,
-          trust: p.trustLevel === 'official' ? output.success('Official') :
-                 p.trustLevel === 'verified' ? output.highlight('Verified') :
-                 p.verified ? output.dim('Community') : output.dim('Unverified'),
-        })),
+        data: plugins.map(p => {
+          const liveRating = realRatings[p.name];
+          const ratingDisplay = liveRating && liveRating.count > 0
+            ? `${liveRating.average.toFixed(1)}★(${liveRating.count})`
+            : `${p.rating.toFixed(1)}★`;
+          return {
+            name: p.name,
+            version: p.version,
+            type: p.type,
+            downloads: p.downloads.toLocaleString(),
+            rating: ratingDisplay,
+            trust: p.trustLevel === 'official' ? output.success('Official') :
+                   p.trustLevel === 'verified' ? output.highlight('Verified') :
+                   p.verified ? output.dim('Community') : output.dim('Unverified'),
+          };
+        }),
       });
 
       output.writeln();
