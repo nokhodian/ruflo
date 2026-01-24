@@ -905,6 +905,27 @@ export class SyncBridge {
   getBeadsBridge(): BdBridge {
     return this.bdBridge;
   }
+
+  /**
+   * Get cache statistics for performance monitoring
+   */
+  getCacheStats(): {
+    agentDBLookupCache: { entries: number; sizeBytes: number };
+    conflictCache: { entries: number; sizeBytes: number };
+  } {
+    return {
+      agentDBLookupCache: agentDBLookupCache.stats(),
+      conflictCache: conflictCache.stats(),
+    };
+  }
+
+  /**
+   * Clear all sync caches
+   */
+  clearCaches(): void {
+    agentDBLookupCache.clear();
+    conflictCache.clear();
+  }
 }
 
 /**
