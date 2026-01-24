@@ -861,11 +861,12 @@ const importCommand: Command = {
         spinner.setText('Verifying Ed25519 signature...');
 
         try {
+          const { webcrypto } = crypto;
           const publicKeyHex = importData.publicKey.replace('ed25519:', '');
           const publicKeyBytes = Buffer.from(publicKeyHex, 'hex');
           const signatureBytes = Buffer.from(importData.signature, 'hex');
 
-          const publicKey = await crypto.subtle.importKey(
+          const publicKey = await webcrypto.subtle.importKey(
             'raw',
             publicKeyBytes,
             { name: 'Ed25519' },
@@ -874,7 +875,7 @@ const importCommand: Command = {
           );
 
           const dataBytes = new TextEncoder().encode(JSON.stringify(importData.pinataContent));
-          const valid = await crypto.subtle.verify('Ed25519', publicKey, signatureBytes, dataBytes);
+          const valid = await webcrypto.subtle.verify('Ed25519', publicKey, signatureBytes, dataBytes);
 
           if (!valid) {
             spinner.fail('Signature verification FAILED - data may be tampered');
