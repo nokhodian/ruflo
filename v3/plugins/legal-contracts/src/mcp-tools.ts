@@ -552,8 +552,8 @@ function simpleHash(str: string): string {
 async function extractClauses(
   document: string,
   clauseTypes: ClauseType[] | undefined,
-  jurisdiction: string,
-  context: ToolContext
+  _jurisdiction: string,
+  _context: ToolContext
 ): Promise<ExtractedClause[]> {
   const clauses: ExtractedClause[] = [];
 
