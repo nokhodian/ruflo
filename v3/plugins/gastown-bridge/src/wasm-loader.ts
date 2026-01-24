@@ -722,24 +722,37 @@ function criticalPathFallback(
  */
 export async function parseFormula(content: string): Promise<Formula> {
   const startTime = performance.now();
+  const cacheKey = hashContent(content);
 
-  const wasmModule = await loadFormulaWasm();
-
-  if (wasmModule) {
-    try {
-      const resultJson = wasmModule.parse_toml(content);
-      const result = JSON.parse(resultJson) as Formula;
-      recordTiming('parseFormula', startTime, true);
-      return result;
-    } catch (error) {
-      console.warn('[WASM Loader] parse_toml failed, using fallback:', error);
-    }
+  // Check LRU cache first (O(1) lookup)
+  const cached = formulaParseCache.get(cacheKey);
+  if (cached) {
+    recordTiming('parseFormula:cache-hit', startTime, false);
+    return cached;
   }
 
-  // JavaScript fallback
-  const result = parseTomlFallback(content);
-  recordTiming('parseFormula', startTime, false);
-  return result;
+  // Use batch deduplication for concurrent requests
+  return parseDedup.dedupe(cacheKey, async () => {
+    const wasmModule = await loadFormulaWasm();
+
+    if (wasmModule) {
+      try {
+        const resultJson = wasmModule.parse_toml(content);
+        const result = JSON.parse(resultJson) as Formula;
+        formulaParseCache.set(cacheKey, result);
+        recordTiming('parseFormula', startTime, true);
+        return result;
+      } catch (error) {
+        console.warn('[WASM Loader] parse_toml failed, using fallback:', error);
+      }
+    }
+
+    // JavaScript fallback
+    const result = parseTomlFallback(content);
+    formulaParseCache.set(cacheKey, result);
+    recordTiming('parseFormula', startTime, false);
+    return result;
+  });
 }
 
 /**
