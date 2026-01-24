@@ -621,7 +621,7 @@ class WasmLoaderAdapter implements IWasmLoader {
   /**
    * Synchronous cycle detection using DFS
    */
-  detectCycle(steps: Array<{ id: string; needs?: string[] }>): { hasCycle: boolean; cycleSteps?: string[] } {
+  detectCycle(steps: Step[]): { hasCycle: boolean; cycleSteps?: string[] } {
     const WHITE = 0, GRAY = 1, BLACK = 2;
     const graph = new Map<string, string[]>();
     const colors = new Map<string, number>();
