@@ -1036,5 +1036,8 @@ export class GasTownBridgePlugin implements IPlugin {
 // Re-export types
 export * from './types.js';
 
+// Re-export bridges
+export * from './bridges/index.js';
+
 // Default export
 export default GasTownBridgePlugin;
