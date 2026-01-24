@@ -1,0 +1,39 @@
+# Gas Town Bridge Plugin - Rust Workspace for WASM Modules
+#
+# This workspace contains WASM modules for accelerated computation:
+# - gastown-formula-wasm: TOML parsing, variable cooking, molecule generation (352x faster)
+# - ruvector-gnn-wasm: DAG operations, topological sort, cycle detection (150x faster)
+#
+# Build with: wasm-pack build --target web
+
+[workspace]
+members = [
+    "wasm/gastown-formula-wasm",
+    "wasm/ruvector-gnn-wasm"
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/ruvnet/claude-flow"
+
+[workspace.dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.6"
+toml = "0.8"
+js-sys = "0.3"
+petgraph = "0.6"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
