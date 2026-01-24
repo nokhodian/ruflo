@@ -339,8 +339,10 @@ async function anomalyDetectHandler(
     return successResult(result, { durationMs: duration, wasmUsed: !!context?.bridge?.sparse });
 
   } catch (error) {
-    const duration = performance.now() - startTime;
-    logger.error('Anomaly detection failed', { error: String(error) });
+    logger.error('Anomaly detection failed', {
+      error: String(error),
+      durationMs: performance.now() - startTime,
+    });
     return errorResult(error instanceof Error ? error : new Error(String(error)));
   }
 }
