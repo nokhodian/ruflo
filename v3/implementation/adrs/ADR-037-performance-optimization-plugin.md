@@ -249,13 +249,22 @@ Raw Traces --> Sparse Encoding --> GNN Analysis --> Pattern Match --> Recommenda
 
 ## Performance Targets
 
-| Metric | Target |
-|--------|--------|
-| Trace analysis | <5s for 1M spans |
-| Memory analysis | <30s for 1GB heap |
-| Query pattern detection | <1s for 10K queries |
-| Bundle analysis | <10s for 10MB bundle |
-| Config optimization | <1min convergence |
+| Metric | Target | Baseline (Traditional) | Improvement |
+|--------|--------|------------------------|-------------|
+| Trace analysis | <5s for 1M spans | ~2min (Jaeger UI) | 24x |
+| Memory analysis | <30s for 1GB heap | ~5min (Chrome DevTools) | 10x |
+| Query pattern detection | <1s for 10K queries | ~10min (manual review) | 600x |
+| Bundle analysis | <10s for 10MB bundle | ~1min (webpack-bundle-analyzer) | 6x |
+| Config optimization | <1min convergence | ~days (manual tuning) | 1440x+ |
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| False positive bottlenecks | Medium | Low | Confidence scores, correlation with metrics |
+| Incomplete instrumentation | Medium | Medium | Partial analysis support, instrumentation guides |
+| Config regression | Low | High | A/B testing, rollback capabilities |
+| High overhead in production | Low | Medium | Sampling, adaptive collection |
 
 ## Supported Formats
 
