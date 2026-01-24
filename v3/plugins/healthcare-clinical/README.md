@@ -233,6 +233,14 @@ All inputs are validated using Zod schemas:
 - `ruvector-sparse-inference-wasm`: Efficient inference on sparse clinical features
 - `@medplum/fhirtypes`: FHIR R4 type definitions
 
+## Related Plugins
+
+| Plugin | Description | Use Case |
+|--------|-------------|----------|
+| [@claude-flow/plugin-legal-contracts](../legal-contracts) | Contract analysis and compliance | Healthcare vendor agreements, BAAs |
+| [@claude-flow/plugin-financial-risk](../financial-risk) | Risk analysis and compliance | Healthcare billing fraud detection |
+| [@claude-flow/plugin-code-intelligence](../code-intelligence) | Code analysis | EHR integration development |
+
 ## License
 
 MIT License
