@@ -96,7 +96,7 @@ function getUserInfo() {
       if (claudeConfig.projects) {
         // Try exact match first, then check if cwd starts with any project path
         for (const [projectPath, projectConfig] of Object.entries(claudeConfig.projects)) {
-          if (cwd === projectPath || cwd.startsWith(projectPath + '/')) {
+          if (cwd === projectPath || cwd.startsWith(projectPath + '/') || cwd.startsWith(projectPath + '\\\\')) {
             lastModelUsage = projectConfig.lastModelUsage;
             break;
           }
