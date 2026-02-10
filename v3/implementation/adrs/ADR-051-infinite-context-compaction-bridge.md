@@ -370,23 +370,27 @@ function createHashEmbedding(text, dimensions = 768) {
 - Auto-pruning of never-accessed entries after configurable retention period
 - Custom compact instructions guiding Claude's compaction summary
 
-### Phase 2: RuVector PostgreSQL (When configured)
+### Phase 2: RuVector PostgreSQL (COMPLETE - Code Ready, Awaiting Configuration)
+- `RuVectorBackend` class fully implemented (lines 361-596 of hook script)
 - Set `RUVECTOR_HOST`, `RUVECTOR_DATABASE`, `RUVECTOR_USER`, `RUVECTOR_PASSWORD`
 - pgvector extension for 768-dim embedding storage and similarity search
 - TB-scale storage with connection pooling (max 3 connections)
-- GNN-enhanced retrieval using code dependency graphs
+- JSONB metadata columns with importance-ranked queries
+- Auto-sync from SQLite to RuVector when env vars configured
+- `ON CONFLICT (id) DO NOTHING` for database-level dedup
 - Automatic fallback to SQLite if PostgreSQL connection fails
 
-### Phase 3: AgentDB Integration (When built)
-- If `@claude-flow/memory` dist exists, use `AgentDBBackend`
-- HNSW-indexed embeddings enable semantic search across archived transcripts
-- Cross-session retrieval: "What did we discuss about auth?" finds relevant chunks
+### Phase 3: AgentDB Integration (COMPLETE - Code Ready, Awaiting Build)
+- `resolveBackend()` checks for `@claude-flow/memory` dist at Tier 3
+- If `AgentDBBackend` class exists, uses HNSW-indexed embeddings
+- Cross-session retrieval: semantic search across archived transcripts
+- Transparent upgrade when `@claude-flow/memory` package is built
 
-### Phase 4: JsonFileBackend (Fallback)
-- Zero dependencies, works everywhere
-- Used only when better-sqlite3 is not available
-- Stores transcript chunks as JSON
-- No indexed queries, linear scan for retrieval
+### Phase 4: JsonFileBackend (COMPLETE - Always Available)
+- `JsonFileBackend` class implemented (lines 278-355 of hook script)
+- Zero dependencies, works everywhere as ultimate fallback
+- Map-based in-memory with JSON file persistence
+- Linear scan for retrieval (no indexed queries)
 
 ## Auto-Optimization Pipeline
 
