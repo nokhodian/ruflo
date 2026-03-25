@@ -56,6 +56,10 @@ export interface SqlJsBackendConfig {
   wasmPath?: string;
 }
 
+function safeParse<T>(json: string, fallback: T): T {
+  try { return JSON.parse(json); } catch { return fallback; }
+}
+
 /**
  * Default configuration values
  */
@@ -717,15 +721,15 @@ export class SqlJsBackend extends EventEmitter implements IMemoryBackend {
         : undefined,
       type: row.type as MemoryType,
       namespace: row.namespace as string,
-      tags: JSON.parse(row.tags as string),
-      metadata: JSON.parse(row.metadata as string),
+      tags: safeParse(row.tags as string, []),
+      metadata: safeParse(row.metadata as string, {}),
       ownerId: row.owner_id as string | undefined,
       accessLevel: row.access_level as any,
       createdAt: row.created_at as number,
       updatedAt: row.updated_at as number,
       expiresAt: row.expires_at as number | undefined,
       version: row.version as number,
-      references: JSON.parse(row.references as string),
+      references: safeParse(row.references as string, []),
       accessCount: row.access_count as number,
       lastAccessedAt: row.last_accessed_at as number,
     };

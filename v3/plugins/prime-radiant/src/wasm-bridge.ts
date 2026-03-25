@@ -195,6 +195,10 @@ export class WasmBridge {
       const fs = await import('fs');
       const path = await import('path');
 
+      if (wasmPath.includes('..') || wasmPath.includes('\0')) {
+        throw new Error('Invalid WASM path: traversal sequences not allowed');
+      }
+
       let resolvedPath = wasmPath;
 
       // Try to resolve path

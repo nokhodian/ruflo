@@ -50,7 +50,10 @@ const defaultLogger = {
 // ============================================================================
 
 function checkAuthorization(toolName: string, context?: ToolContext): boolean {
-  if (!context?.userRoles) return true; // No roles = no RBAC enforcement
+  // SECURITY DESIGN DECISION: When no userRoles are provided, RBAC is not enforced.
+  // In this plugin context, RBAC is optional — consumers that require access control
+  // must supply userRoles via ToolContext. If no roles are configured, all access is permitted.
+  if (!context?.userRoles) return true;
 
   for (const role of context.userRoles) {
     // Normalize role to uppercase to match HealthcareRolePermissions keys
@@ -89,13 +92,8 @@ async function logAudit(
 }
 
 function hashInput(input: unknown): string {
-  const str = JSON.stringify(input);
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16);
+  const { createHash } = require('crypto');
+  return createHash('sha256').update(JSON.stringify(input)).digest('hex');
 }
 
 // ============================================================================

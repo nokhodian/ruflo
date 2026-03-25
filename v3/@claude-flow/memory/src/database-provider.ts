@@ -342,7 +342,12 @@ class JsonBackend implements IMemoryBackend {
       try {
         const fs = await import('node:fs/promises');
         const data = await fs.readFile(this.path, 'utf-8');
-        const entries = JSON.parse(data);
+        let entries: any[];
+        try {
+          entries = JSON.parse(data);
+        } catch (parseError) {
+          throw new Error(`Failed to parse memory database at ${this.path}: ${(parseError as Error).message}`);
+        }
 
         for (const entry of entries) {
           // Convert embedding array back to Float32Array
@@ -520,7 +525,9 @@ class JsonBackend implements IMemoryBackend {
       embedding: e.embedding ? Array.from(e.embedding) : undefined,
     }));
 
-    await fs.writeFile(this.path, JSON.stringify(entries, null, 2));
+    const tmpPath = this.path + '.tmp';
+    await fs.writeFile(tmpPath, JSON.stringify(entries, null, 2));
+    await fs.rename(tmpPath, this.path);
   }
 
   private cosineSimilarity(a: Float32Array, b: Float32Array): number {

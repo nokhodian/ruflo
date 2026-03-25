@@ -53,6 +53,10 @@ export interface SQLiteBackendConfig {
   verbose: boolean;
 }
 
+function safeParse<T>(json: string, fallback: T): T {
+  try { return JSON.parse(json); } catch { return fallback; }
+}
+
 /**
  * Default configuration values
  */
@@ -674,15 +678,15 @@ export class SQLiteBackend extends EventEmitter implements IMemoryBackend {
       embedding,
       type: row.type as MemoryType,
       namespace: row.namespace,
-      tags: JSON.parse(row.tags),
-      metadata: JSON.parse(row.metadata),
+      tags: safeParse(row.tags, []),
+      metadata: safeParse(row.metadata, {}),
       ownerId: row.owner_id,
       accessLevel: row.access_level,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       expiresAt: row.expires_at,
       version: row.version,
-      references: JSON.parse(row.references),
+      references: safeParse(row.references, []),
       accessCount: row.access_count,
       lastAccessedAt: row.last_accessed_at,
     };

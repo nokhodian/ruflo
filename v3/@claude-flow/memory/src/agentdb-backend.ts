@@ -95,6 +95,10 @@ export interface AgentDBBackendConfig {
   maxEntries?: number;
 }
 
+function safeParse<T>(json: string, fallback: T): T {
+  try { return JSON.parse(json); } catch { return fallback; }
+}
+
 /**
  * Default configuration
  */
@@ -921,15 +925,15 @@ export class AgentDBBackend extends EventEmitter implements IMemoryBackend {
         : undefined,
       type: row.type,
       namespace: row.namespace,
-      tags: JSON.parse(row.tags || '[]'),
-      metadata: JSON.parse(row.metadata || '{}'),
+      tags: safeParse(row.tags || '[]', []),
+      metadata: safeParse(row.metadata || '{}', {}),
       ownerId: row.owner_id,
       accessLevel: row.access_level,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       expiresAt: row.expires_at,
       version: row.version,
-      references: JSON.parse(row.references || '[]'),
+      references: safeParse(row.references || '[]', []),
       accessCount: row.access_count || 0,
       lastAccessedAt: row.last_accessed_at || row.created_at,
     };
