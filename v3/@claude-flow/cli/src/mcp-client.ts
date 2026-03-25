@@ -40,6 +40,7 @@ import { agentdbTools } from './mcp-tools/agentdb-tools.js';
 // RuVector WASM tools
 import { ruvllmWasmTools } from './mcp-tools/ruvllm-tools.js';
 import { wasmAgentTools } from './mcp-tools/wasm-agent-tools.js';
+import { guidanceTools } from './mcp-tools/guidance-tools.js';
 
 /**
  * MCP Tool Registry
@@ -85,6 +86,8 @@ registerTools([
   // RuVector WASM tools
   ...ruvllmWasmTools,
   ...wasmAgentTools,
+  // Guidance & discovery tools
+  ...guidanceTools,
 ]);
 
 /**
