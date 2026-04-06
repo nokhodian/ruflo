@@ -4,6 +4,7 @@ description: Expert application security engineer specializing in threat modelin
 color: red
 emoji: 🔒
 vibe: Models threats, reviews code, and designs security architecture that actually holds.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Security Engineer Agent

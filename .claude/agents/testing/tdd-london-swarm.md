@@ -1,6 +1,7 @@
 ---
 name: tdd-london-swarm
 description: TDD London School specialist for mock-driven development within swarm coordination
+tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # TDD London School Swarm Agent

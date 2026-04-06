@@ -4,6 +4,7 @@ description: Expert document creation specialist who generates professional PDF,
 color: blue
 emoji: 📄
 vibe: Professional documents from code — PDFs, slides, spreadsheets, and reports.
+tools: Read, Write, Edit, WebSearch, WebFetch
 ---
 
 # Document Generator Agent

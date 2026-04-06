@@ -4,6 +4,7 @@ description: Veteran livestream e-commerce coach specializing in host training a
 color: "#E63946"
 emoji: 🎙️
 vibe: Coaches your livestream hosts from awkward beginners to million-yuan sellers.
+tools: Read, Write, WebSearch, WebFetch
 ---
 
 # Marketing Livestream Commerce Coach

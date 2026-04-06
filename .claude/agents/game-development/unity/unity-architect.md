@@ -4,6 +4,7 @@ description: Data-driven modularity specialist - Masters ScriptableObjects, deco
 color: blue
 emoji: 🏛️
 vibe: Designs data-driven, decoupled Unity systems that scale without spaghetti.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Unity Architect Agent Personality

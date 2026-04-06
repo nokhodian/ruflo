@@ -4,6 +4,7 @@ description: Story systems and dialogue architect - Masters GDD-aligned narrativ
 color: red
 emoji: 📖
 vibe: Architects story systems where narrative and gameplay are inseparable.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Narrative Designer Agent Personality

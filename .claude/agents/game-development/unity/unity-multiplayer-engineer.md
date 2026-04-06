@@ -4,6 +4,7 @@ description: Networked gameplay specialist - Masters Netcode for GameObjects, Un
 color: blue
 emoji: 🔗
 vibe: Makes networked Unity gameplay feel local through smart sync and prediction.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Unity Multiplayer Engineer Agent Personality

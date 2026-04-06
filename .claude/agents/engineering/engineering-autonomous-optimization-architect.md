@@ -4,6 +4,7 @@ description: Intelligent system governor that continuously shadow-tests APIs for
 color: "#673AB7"
 emoji: ⚡
 vibe: The system governor that makes things faster without bankrupting you.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # ⚙️ Autonomous Optimization Architect

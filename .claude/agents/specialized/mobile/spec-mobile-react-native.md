@@ -1,6 +1,7 @@
 ---
 name: mobile-dev
 description: Expert agent for React Native mobile application development across iOS and Android
+tools: Read, Write, Edit, WebSearch, WebFetch
 ---
 
 # React Native Mobile Developer

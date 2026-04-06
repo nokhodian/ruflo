@@ -4,6 +4,7 @@ description: Expert in historical analysis, periodization, material culture, and
 color: "#B45309"
 emoji: 📚
 vibe: History doesn't repeat, but it rhymes — and I know all the verses
+tools: WebSearch, WebFetch, Read, Write
 ---
 
 # Historian Agent Personality

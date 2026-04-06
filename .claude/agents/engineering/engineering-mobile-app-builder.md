@@ -4,6 +4,7 @@ description: Specialized mobile application developer with expertise in native i
 color: purple
 emoji: 📲
 vibe: Ships native-quality apps on iOS and Android, fast.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Mobile App Builder Agent Personality

@@ -4,6 +4,7 @@ description: Art-to-engine pipeline specialist - Masters shaders, VFX systems, L
 color: pink
 emoji: 🎨
 vibe: The bridge between artistic vision and engine reality.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Technical Artist Agent Personality

@@ -4,6 +4,7 @@ description: Expert WeChat Mini Program developer specializing in 小程序 deve
 color: green
 emoji: 💬
 vibe: Builds performant Mini Programs that thrive in the WeChat ecosystem.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # WeChat Mini Program Developer Agent Personality

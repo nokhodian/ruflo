@@ -4,6 +4,7 @@ description: Roblox platform engineering specialist - Masters Luau, the client-s
 color: rose
 emoji: 🔧
 vibe: Builds scalable Roblox experiences with rock-solid Luau and client-server security.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Roblox Systems Scripter Agent Personality

@@ -1,8 +1,8 @@
 ---
 name: agent-coordination
 description: >
-  Agent spawning, lifecycle management, and coordination patterns. Manages 60+ agent types with specialized capabilities.
-  Use when: spawning agents, coordinating multi-agent tasks, managing agent pools.
+  Agent spawning, lifecycle management, and coordination patterns. Manages 230+ agent types across 20+ categories including engineering, design, marketing, game development, sales, testing, and more.
+  Use when: spawning agents, coordinating multi-agent tasks, managing agent pools, routing domain-specific work.
   Skip when: single-agent work, no coordination needed.
 ---
 
@@ -30,6 +30,45 @@ Spawn and coordinate agents for complex multi-agent tasks.
 
 ### SPARC
 `sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
+
+### Academic
+`academic-anthropologist`, `academic-geographer`, `academic-historian`, `academic-narratologist`, `academic-psychologist`
+
+### Design
+`design-brand-guardian`, `design-image-prompt-engineer`, `design-inclusive-visuals-specialist`, `design-ui-designer`, `design-ux-architect`, `design-ux-researcher`, `design-visual-storyteller`, `design-whimsy-injector`
+
+### Engineering
+`engineering-ai-engineer`, `engineering-backend-architect`, `engineering-code-reviewer`, `engineering-data-engineer`, `engineering-database-optimizer`, `engineering-devops-automator`, `engineering-embedded-firmware-engineer`, `engineering-frontend-developer`, `engineering-git-workflow-master`, `engineering-incident-response-commander`, `engineering-mobile-app-builder`, `engineering-rapid-prototyper`, `engineering-security-engineer`, `engineering-senior-developer`, `engineering-software-architect`, `engineering-solidity-smart-contract-engineer`, `engineering-sre`, `engineering-technical-writer`, `engineering-threat-detection-engineer`
+
+### Game Development
+`game-designer`, `game-audio-engineer`, `level-designer`, `narrative-designer`, `technical-artist`, `blender-addon-engineer`, `godot-gameplay-scripter`, `godot-multiplayer-engineer`, `godot-shader-developer`, `unity-architect`, `unity-editor-tool-developer`, `unity-multiplayer-engineer`, `unity-shader-graph-artist`, `unreal-multiplayer-architect`, `unreal-systems-engineer`, `unreal-technical-artist`, `unreal-world-builder`, `roblox-avatar-creator`, `roblox-experience-designer`, `roblox-systems-scripter`
+
+### Marketing
+`marketing-seo-specialist`, `marketing-content-creator`, `marketing-social-media-strategist`, `marketing-growth-hacker`, `marketing-tiktok-strategist`, `marketing-linkedin-content-creator`, `marketing-instagram-curator`, `marketing-twitter-engager`, `marketing-reddit-community-builder`, `marketing-podcast-strategist`, `marketing-book-co-author`, `marketing-app-store-optimizer`, `marketing-ai-citation-strategist`, `marketing-baidu-seo-specialist`, `marketing-bilibili-content-strategist`, `marketing-douyin-strategist`, `marketing-kuaishou-strategist`, `marketing-weibo-strategist`, `marketing-xiaohongshu-specialist`, `marketing-zhihu-strategist`, `marketing-wechat-official-account`, `marketing-china-ecommerce-operator`, `marketing-cross-border-ecommerce`, `marketing-livestream-commerce-coach`, `marketing-private-domain-operator`, `marketing-short-video-editing-coach`, `marketing-carousel-growth-engine`
+
+### Paid Media
+`paid-media-ppc-strategist`, `paid-media-programmatic-buyer`, `paid-media-paid-social-strategist`, `paid-media-auditor`, `paid-media-creative-strategist`, `paid-media-search-query-analyst`, `paid-media-tracking-specialist`
+
+### Product
+`product-manager`, `product-sprint-prioritizer`, `product-feedback-synthesizer`, `product-trend-researcher`, `product-behavioral-nudge-engine`
+
+### Project Management
+`project-manager-senior`, `project-management-project-shepherd`, `project-management-jira-workflow-steward`, `project-management-studio-producer`, `project-management-studio-operations`, `project-management-experiment-tracker`
+
+### Sales
+`sales-coach`, `sales-engineer`, `sales-deal-strategist`, `sales-discovery-coach`, `sales-outbound-strategist`, `sales-pipeline-analyst`, `sales-proposal-strategist`, `sales-account-strategist`
+
+### Spatial Computing
+`visionos-spatial-engineer`, `xr-immersive-developer`, `xr-interface-architect`, `xr-cockpit-interaction-specialist`, `macos-spatial-metal-engineer`, `terminal-integration-specialist`
+
+### Specialized
+`specialized-mcp-builder`, `specialized-salesforce-architect`, `specialized-workflow-architect`, `specialized-developer-advocate`, `specialized-document-generator`, `specialized-model-qa`, `specialized-cultural-intelligence-strategist`, `blockchain-security-auditor`, `compliance-auditor`, `identity-graph-operator`, `agentic-identity-trust`, `agents-orchestrator`, `automation-governance-architect`, `lsp-index-engineer`, `zk-steward`, `supply-chain-strategist`, `recruitment-specialist`, `corporate-training-designer`, `study-abroad-advisor`, `healthcare-marketing-compliance`, `accounts-payable-agent`, `data-consolidation-agent`, `report-distribution-agent`, `sales-data-extraction-agent`
+
+### Support
+`support-analytics-reporter`, `support-executive-summary-generator`, `support-finance-tracker`, `support-infrastructure-maintainer`, `support-legal-compliance-checker`, `support-support-responder`
+
+### Testing
+`testing-accessibility-auditor`, `testing-api-tester`, `testing-evidence-collector`, `testing-performance-benchmarker`, `testing-reality-checker`, `testing-test-results-analyzer`, `testing-tool-evaluator`, `testing-workflow-optimizer`
 
 ## Commands
 

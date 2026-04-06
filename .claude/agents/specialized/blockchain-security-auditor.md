@@ -4,6 +4,7 @@ description: Expert smart contract security auditor specializing in vulnerabilit
 color: red
 emoji: 🛡️
 vibe: Finds the exploit in your smart contract before the attacker does.
+tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
 ---
 
 # Blockchain Security Auditor

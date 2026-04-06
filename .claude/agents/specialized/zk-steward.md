@@ -4,6 +4,7 @@ description: Knowledge-base steward in the spirit of Niklas Luhmann's Zettelkast
 color: teal
 emoji: 🗃️
 vibe: Channels Luhmann's Zettelkasten to build connected, validated knowledge bases.
+tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # ZK Steward Agent

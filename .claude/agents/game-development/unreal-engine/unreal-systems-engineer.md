@@ -4,6 +4,7 @@ description: Performance and hybrid architecture specialist - Masters C++/Bluepr
 color: orange
 emoji: ⚙️
 vibe: Masters the C++/Blueprint continuum for AAA-grade Unreal Engine projects.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Unreal Systems Engineer Agent Personality

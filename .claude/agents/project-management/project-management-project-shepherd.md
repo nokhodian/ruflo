@@ -4,6 +4,7 @@ description: Expert project manager specializing in cross-functional project coo
 color: blue
 emoji: 🐑
 vibe: Herds cross-functional chaos into on-time, on-scope delivery.
+tools: Read, Write, Edit, WebSearch
 ---
 
 # Project Shepherd Agent Personality

@@ -4,6 +4,7 @@ description: Expert legal and compliance specialist ensuring business operations
 color: red
 emoji: ⚖️
 vibe: Ensures your operations comply with the law across every jurisdiction that matters.
+tools: Read, Write, WebSearch, WebFetch
 ---
 
 # Legal Compliance Checker Agent Personality

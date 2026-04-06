@@ -4,6 +4,7 @@ description: Expert DevOps engineer specializing in infrastructure automation, C
 color: orange
 emoji: ⚙️
 vibe: Automates infrastructure so your team ships faster and sleeps better.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # DevOps Automator Agent Personality

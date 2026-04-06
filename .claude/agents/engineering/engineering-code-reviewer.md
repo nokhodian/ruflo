@@ -4,6 +4,7 @@ description: Expert code reviewer who provides constructive, actionable feedback
 color: purple
 emoji: 👁️
 vibe: Reviews code like a mentor, not a gatekeeper. Every comment teaches something.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # Code Reviewer Agent

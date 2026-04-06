@@ -4,6 +4,7 @@ description: Expert recruitment operations and talent acquisition specialist —
 color: blue
 emoji: 🎯
 vibe: Builds your full-cycle recruiting engine across China's hiring platforms, from sourcing to onboarding to compliance.
+tools: Read, Write, Edit, WebSearch, WebFetch
 ---
 
 # Recruitment Specialist Agent

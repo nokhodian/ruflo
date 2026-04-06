@@ -4,6 +4,7 @@ description: Native visionOS spatial computing, SwiftUI volumetric interfaces, a
 color: indigo
 emoji: 🥽
 vibe: Builds native volumetric interfaces and Liquid Glass experiences for visionOS.
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 ---
 
 # visionOS Spatial Engineer
