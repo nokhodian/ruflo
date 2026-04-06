@@ -14,6 +14,7 @@
 
 ## Next Up
 
+- [ ] **00** — rebrand-monobrain (**RUN THIS FIRST** — ruvnet→nokhodian, claude-flow/ruflo→monobrain)
 - [ ] 02 — llm-fallback-routing (depends on: 01 ✅)
 - [ ] 03 — keyword-routing (depends on: 01 ✅)
 - [ ] 04 — capability-metadata (depends on: none)
