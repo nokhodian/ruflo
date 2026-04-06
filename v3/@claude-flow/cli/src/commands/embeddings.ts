@@ -656,7 +656,7 @@ const initCommand: Command = {
   name: 'init',
   description: 'Initialize embedding subsystem with ONNX model and hyperbolic config',
   options: [
-    { name: 'model', short: 'm', type: 'string', description: 'ONNX model ID', default: 'all-MiniLM-L6-v2' },
+    { name: 'model', short: 'm', type: 'string', description: 'ONNX model ID', default: 'Xenova/all-MiniLM-L6-v2' },
     { name: 'hyperbolic', type: 'boolean', description: 'Enable hyperbolic (Poincaré ball) embeddings', default: 'true' },
     { name: 'curvature', short: 'c', type: 'string', description: 'Poincaré ball curvature (use --curvature=-1 for negative)', default: '-1' },
     { name: 'download', short: 'd', type: 'boolean', description: 'Download model during init', default: 'true' },
@@ -665,13 +665,13 @@ const initCommand: Command = {
   ],
   examples: [
     { command: 'claude-flow embeddings init', description: 'Initialize with defaults' },
-    { command: 'claude-flow embeddings init --model all-mpnet-base-v2', description: 'Use higher quality model' },
+    { command: 'claude-flow embeddings init --model Xenova/all-mpnet-base-v2', description: 'Use higher quality model' },
     { command: 'claude-flow embeddings init --no-hyperbolic', description: 'Euclidean only' },
     { command: 'claude-flow embeddings init --curvature=-0.5', description: 'Custom curvature (use = for negative)' },
     { command: 'claude-flow embeddings init --force', description: 'Overwrite existing config' },
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
-    const model = ctx.flags.model as string || 'all-MiniLM-L6-v2';
+    const model = ctx.flags.model as string || 'Xenova/all-MiniLM-L6-v2';
     const hyperbolic = ctx.flags.hyperbolic !== false;
     const download = ctx.flags.download !== false;
     const force = ctx.flags.force === true;
@@ -726,9 +726,9 @@ const initCommand: Command = {
             spinner.setText(`Downloading ${model}... ${p.percent.toFixed(0)}%`);
           });
         } else {
-          // Simulate download for when embeddings package not available
+          // Embeddings package not available — skip download
           await new Promise(r => setTimeout(r, 500));
-          output.writeln(output.dim('  (Simulated - @claude-flow/embeddings not installed)'));
+          output.writeln(output.dim('  (Skipped — @claude-flow/embeddings not installed)'));
         }
       }
 
@@ -827,7 +827,7 @@ const providersCommand: Command = {
       data: [
         { provider: 'OpenAI', model: 'text-embedding-3-small', dims: '1536', type: 'Cloud', status: output.success('Ready') },
         { provider: 'OpenAI', model: 'text-embedding-3-large', dims: '3072', type: 'Cloud', status: output.success('Ready') },
-        { provider: 'Transformers.js', model: 'all-MiniLM-L6-v2', dims: '384', type: 'Local', status: output.success('Ready') },
+        { provider: 'Transformers.js', model: 'Xenova/all-MiniLM-L6-v2', dims: '384', type: 'Local', status: output.success('Ready') },
         { provider: 'Agentic Flow', model: 'ONNX optimized', dims: '384', type: 'Local', status: output.success('Ready') },
         { provider: 'Mock', model: 'mock-embedding', dims: '384', type: 'Dev', status: output.dim('Dev only') },
       ],
@@ -1010,7 +1010,7 @@ const hyperbolicCommand: Command = {
         case 'convert': {
           const vec = Array.isArray(input[0]) ? input[0] as number[] : input as number[];
           const rawResult = hyperbolic.euclideanToPoincare(vec, { curvature });
-          const result = Array.from(rawResult);
+          const result = Array.from(rawResult) as number[];
           output.writeln(output.success('Euclidean → Poincaré conversion:'));
           output.writeln();
           output.writeln(`Input (Euclidean):  [${vec.slice(0, 6).map(v => v.toFixed(4)).join(', ')}${vec.length > 6 ? ', ...' : ''}]`);
@@ -1042,7 +1042,7 @@ const hyperbolicCommand: Command = {
           }
           const vectors = input as number[][];
           const rawCentroid = hyperbolic.hyperbolicCentroid(vectors, { curvature });
-          const centroid = Array.from(rawCentroid);
+          const centroid = Array.from(rawCentroid) as number[];
           output.writeln(output.success('Hyperbolic centroid (Fréchet mean):'));
           output.writeln();
           output.writeln(`Input vectors: ${vectors.length}`);
@@ -1258,16 +1258,16 @@ const modelsCommand: Command = {
         }
       } else {
         await new Promise(r => setTimeout(r, 500));
-        spinner.succeed(`Download complete (simulated)`);
+        spinner.succeed(`Download skipped — @claude-flow/embeddings not installed`);
       }
       return { success: true };
     }
 
     // List models
     let models = [
-      { id: 'all-MiniLM-L6-v2', dimension: 384, size: '23MB', quantized: false, downloaded: true },
-      { id: 'all-mpnet-base-v2', dimension: 768, size: '110MB', quantized: false, downloaded: false },
-      { id: 'paraphrase-MiniLM-L3-v2', dimension: 384, size: '17MB', quantized: false, downloaded: false },
+      { id: 'Xenova/all-MiniLM-L6-v2', dimension: 384, size: '23MB', quantized: false, downloaded: true },
+      { id: 'Xenova/all-mpnet-base-v2', dimension: 768, size: '110MB', quantized: false, downloaded: false },
+      { id: 'Xenova/paraphrase-MiniLM-L3-v2', dimension: 384, size: '17MB', quantized: false, downloaded: false },
     ];
 
     if (embeddings) {

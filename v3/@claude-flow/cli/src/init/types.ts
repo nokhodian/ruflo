@@ -210,7 +210,7 @@ export interface EmbeddingsConfig {
   /** Enable embedding subsystem */
   enabled: boolean;
   /** ONNX model ID */
-  model: 'all-MiniLM-L6-v2' | 'all-mpnet-base-v2' | 'bge-small-en-v1.5' | string;
+  model: 'Xenova/all-MiniLM-L6-v2' | 'Xenova/all-mpnet-base-v2' | 'Xenova/bge-small-en-v1.5' | string;
   /** Enable hyperbolic (Poincaré ball) embeddings */
   hyperbolic: boolean;
   /** Poincaré ball curvature (negative value, typically -1) */
@@ -406,7 +406,7 @@ export const DEFAULT_INIT_OPTIONS: InitOptions = {
   },
   embeddings: {
     enabled: true,
-    model: 'all-MiniLM-L6-v2',
+    model: 'Xenova/all-MiniLM-L6-v2',
     hyperbolic: true,
     curvature: -1.0,
     predownload: false,  // Don't auto-download to speed up init
@@ -475,7 +475,7 @@ export const MINIMAL_INIT_OPTIONS: InitOptions = {
   },
   embeddings: {
     enabled: false,
-    model: 'all-MiniLM-L6-v2',
+    model: 'Xenova/all-MiniLM-L6-v2',
     hyperbolic: false,
     curvature: -1.0,
     predownload: false,
@@ -527,7 +527,7 @@ export const FULL_INIT_OPTIONS: InitOptions = {
   },
   embeddings: {
     enabled: true,
-    model: 'all-MiniLM-L6-v2',
+    model: 'Xenova/all-MiniLM-L6-v2',
     hyperbolic: true,
     curvature: -1.0,
     predownload: true,  // Pre-download for full init

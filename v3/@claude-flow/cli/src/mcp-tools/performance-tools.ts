@@ -12,7 +12,7 @@
  * Note: Some optimization suggestions are illustrative
  */
 
-import type { MCPTool } from './types.js';
+import { type MCPTool, getProjectCwd } from './types.js';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import * as os from 'node:os';
@@ -52,7 +52,7 @@ interface PerfStore {
 }
 
 function getPerfDir(): string {
-  return join(process.cwd(), STORAGE_DIR, PERF_DIR);
+  return join(getProjectCwd(), STORAGE_DIR, PERF_DIR);
 }
 
 function getPerfPath(): string {
@@ -199,55 +199,63 @@ export const performanceTools: MCPTool[] = [
         deep: { type: 'boolean', description: 'Deep analysis' },
       },
     },
-    handler: async (input) => {
-      const deep = input.deep as boolean;
+    handler: async (_input) => {
+      const loadAvg = os.loadavg();
+      const cpus = os.cpus();
+      const cpuPercent = Math.min((loadAvg[0] / cpus.length) * 100, 100);
 
-      const bottlenecks = [
-        {
-          component: 'memory',
-          severity: 'medium',
-          metric: 'heap_usage',
-          current: 78,
-          threshold: 80,
-          impact: 'May cause GC pressure',
-          suggestion: 'Consider increasing heap size or optimizing memory usage',
-        },
-        {
-          component: 'neural',
-          severity: 'low',
-          metric: 'inference_latency',
-          current: 45,
-          threshold: 100,
-          impact: 'Within acceptable range',
-          suggestion: 'Enable Flash Attention for further optimization',
-        },
-      ];
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const memPercent = ((totalMem - freeMem) / totalMem) * 100;
+      const memUsage = process.memoryUsage();
+      const heapMB = Math.round(memUsage.heapUsed / 1024 / 1024);
 
-      if (deep) {
-        bottlenecks.push({
-          component: 'database',
-          severity: 'low',
-          metric: 'query_time',
-          current: 15,
-          threshold: 50,
-          impact: 'Queries performing well',
-          suggestion: 'Consider adding indexes for frequently accessed patterns',
-        });
+      // Measure disk I/O latency with a real write/read cycle
+      let diskLatencyMs = -1;
+      try {
+        ensurePerfDir();
+        const probeFile = join(getPerfDir(), '.io-probe');
+        const payload = Buffer.alloc(4096, 0x41); // 4 KB
+        const t0 = performance.now();
+        writeFileSync(probeFile, payload);
+        readFileSync(probeFile);
+        diskLatencyMs = Math.round((performance.now() - t0) * 100) / 100;
+        try { const { unlinkSync } = require('node:fs'); unlinkSync(probeFile); } catch { /* best-effort */ }
+      } catch { /* disk probe failed, leave -1 */ }
+
+      // Check stored benchmark history for slow operations
+      const store = loadPerfStore();
+      const slowBenchmarks = Object.values(store.benchmarks)
+        .filter((b: Benchmark) => b.results.opsPerSecond < 100)
+        .map((b: Benchmark) => ({ name: b.name, opsPerSec: b.results.opsPerSecond, date: b.createdAt }));
+
+      type Severity = 'critical' | 'high' | 'medium' | 'low';
+      const classify = (value: number, thresholds: [number, number, number]): Severity =>
+        value > thresholds[0] ? 'critical' : value > thresholds[1] ? 'high' : value > thresholds[2] ? 'medium' : 'low';
+
+      const bottlenecks: Array<{ component: string; severity: Severity; value: number; threshold: number; message: string; latencyMs?: number }> = [];
+
+      const cpuSev = classify(cpuPercent, [90, 75, 50]);
+      bottlenecks.push({ component: 'cpu', severity: cpuSev, value: Math.round(cpuPercent * 10) / 10, threshold: cpuSev === 'critical' ? 90 : cpuSev === 'high' ? 75 : 50, message: `CPU load at ${(Math.round(cpuPercent * 10) / 10)}%` });
+
+      const memSev = classify(memPercent, [90, 75, 50]);
+      bottlenecks.push({ component: 'memory', severity: memSev, value: Math.round(memPercent * 10) / 10, threshold: memSev === 'critical' ? 90 : memSev === 'high' ? 75 : 50, message: `Memory at ${(Math.round(memPercent * 10) / 10)}%` });
+
+      if (diskLatencyMs >= 0) {
+        const diskSev: Severity = diskLatencyMs > 50 ? 'critical' : diskLatencyMs > 20 ? 'high' : diskLatencyMs > 5 ? 'medium' : 'low';
+        bottlenecks.push({ component: 'disk-io', severity: diskSev, value: diskLatencyMs, threshold: diskSev === 'critical' ? 50 : diskSev === 'high' ? 20 : 5, message: `Disk I/O latency ${diskLatencyMs}ms`, latencyMs: diskLatencyMs });
       }
 
-      const criticalCount = bottlenecks.filter(b => b.severity === 'critical').length;
-      const warningCount = bottlenecks.filter(b => b.severity === 'medium').length;
+      if (slowBenchmarks.length > 0) {
+        bottlenecks.push({ component: 'slow-operations', severity: 'medium', value: slowBenchmarks.length, threshold: 0, message: `${slowBenchmarks.length} slow benchmark(s) recorded` });
+      }
 
       return {
-        status: criticalCount > 0 ? 'critical' : warningCount > 0 ? 'warning' : 'healthy',
+        success: true,
+        _real: true,
         bottlenecks,
-        summary: {
-          total: bottlenecks.length,
-          critical: criticalCount,
-          warning: warningCount,
-          info: bottlenecks.filter(b => b.severity === 'low').length,
-        },
-        analyzedAt: new Date().toISOString(),
+        system: { cpuPercent: Math.round(cpuPercent * 10) / 10, memoryPercent: Math.round(memPercent * 10) / 10, heapMB, diskLatencyMs },
+        slowBenchmarks: slowBenchmarks.slice(0, 5),
       };
     },
   },
@@ -397,32 +405,77 @@ export const performanceTools: MCPTool[] = [
     },
     handler: async (input) => {
       const target = (input.target as string) || 'all';
-      const duration = (input.duration as number) || 5;
+      const durationSec = Math.min((input.duration as number) || 1, 10);
+      const durationMs = durationSec * 1000;
 
-      // Simulate profiling
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const cpuBefore = process.cpuUsage();
+      const memBefore = process.memoryUsage();
+      const wallStart = performance.now();
+
+      // Profile operations keyed by name
+      const ops: Record<string, { totalMs: number; count: number }> = {};
+      const runOp = (name: string, fn: () => void) => {
+        const t0 = performance.now();
+        fn();
+        const elapsed = performance.now() - t0;
+        if (!ops[name]) ops[name] = { totalMs: 0, count: 0 };
+        ops[name].totalMs += elapsed;
+        ops[name].count += 1;
+      };
+
+      const targets = target === 'all' ? ['memory', 'io', 'cpu'] : [target];
+      const deadline = wallStart + durationMs;
+
+      while (performance.now() < deadline) {
+        for (const t of targets) {
+          if (performance.now() >= deadline) break;
+          if (t === 'memory') {
+            runOp('json-serialize', () => { const d = Array.from({ length: 200 }, (_, i) => ({ id: i, v: Math.random() })); JSON.stringify(d); });
+            runOp('json-parse', () => { JSON.parse(JSON.stringify({ a: 1, b: [2, 3], c: { d: 4 } })); });
+            runOp('array-sort', () => { const a = Array.from({ length: 500 }, () => Math.random()); a.sort(); });
+          } else if (t === 'io') {
+            runOp('file-write', () => { ensurePerfDir(); writeFileSync(join(getPerfDir(), '.profile-probe'), 'x'.repeat(1024)); });
+            runOp('file-read', () => { try { readFileSync(join(getPerfDir(), '.profile-probe')); } catch { /* ok */ } });
+          } else if (t === 'cpu') {
+            runOp('matrix-mult', () => { const s = 32; const a = Array.from({ length: s }, () => Array.from({ length: s }, () => Math.random())); for (let i = 0; i < s; i++) for (let j = 0; j < s; j++) { let sum = 0; for (let k = 0; k < s; k++) sum += a[i][k] * a[k][j]; } });
+            runOp('hash-compute', () => { let h = 0; for (let i = 0; i < 10000; i++) h = ((h << 5) - h + i) | 0; });
+          }
+        }
+      }
+
+      const wallEnd = performance.now();
+      const cpuAfter = process.cpuUsage(cpuBefore);
+      const memAfter = process.memoryUsage();
+      const actualDuration = Math.round((wallEnd - wallStart) * 100) / 100;
+      const totalOpMs = Object.values(ops).reduce((s, o) => s + o.totalMs, 0);
+
+      const hotspots = Object.entries(ops)
+        .map(([operation, data]) => ({
+          operation,
+          avgLatencyMs: Math.round((data.totalMs / data.count) * 1000) / 1000,
+          opsCount: data.count,
+          percentOfTotal: Math.round((data.totalMs / (totalOpMs || 1)) * 10000) / 100,
+        }))
+        .sort((a, b) => b.percentOfTotal - a.percentOfTotal);
+
+      // Cleanup probe file
+      try { const { unlinkSync } = require('node:fs'); unlinkSync(join(getPerfDir(), '.profile-probe')); } catch { /* ok */ }
 
       return {
+        success: true,
+        _real: true,
         target,
-        duration: `${duration}s`,
-        samples: Math.floor(duration * 100),
-        hotspots: [
-          { function: 'vectorSearch', time: '35%', calls: 1500 },
-          { function: 'embedText', time: '25%', calls: 800 },
-          { function: 'agentCoordinate', time: '15%', calls: 200 },
-          { function: 'memoryStore', time: '10%', calls: 500 },
-          { function: 'other', time: '15%', calls: 3000 },
-        ],
-        memory: {
-          peakHeap: '256MB',
-          avgHeap: '180MB',
-          gcPauses: 5,
-          gcTime: '50ms',
+        duration: actualDuration,
+        cpu: {
+          userMs: Math.round(cpuAfter.user / 1000),
+          systemMs: Math.round(cpuAfter.system / 1000),
+          percentUtilization: Math.round(((cpuAfter.user + cpuAfter.system) / 1000 / actualDuration) * 10000) / 100,
         },
-        recommendations: [
-          'vectorSearch: Consider batch processing for bulk operations',
-          'embedText: Enable caching for repeated queries',
-        ],
+        memory: {
+          heapDeltaMB: Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024 * 100) / 100,
+          externalDeltaMB: Math.round((memAfter.external - memBefore.external) / 1024 / 1024 * 100) / 100,
+        },
+        hotspots,
       };
     },
   },
@@ -439,49 +492,91 @@ export const performanceTools: MCPTool[] = [
     },
     handler: async (input) => {
       const target = (input.target as string) || 'all';
-      const aggressive = input.aggressive as boolean;
+      const aggressive = input.aggressive === true;
 
-      const optimizations: Record<string, string[]> = {
-        memory: [
-          'Enabled Int8 quantization (3.92x compression)',
-          'Activated gradient checkpointing',
-          'Configured memory pooling',
-        ],
-        latency: [
-          'Enabled response caching (95% hit rate)',
-          'Activated batch processing',
-          'Configured connection pooling',
-        ],
-        throughput: [
-          'Enabled parallel processing',
-          'Configured worker pool (4 workers)',
-          'Activated request pipelining',
-        ],
-      };
+      // Snapshot system state BEFORE optimizations
+      const loadBefore = os.loadavg();
+      const cpusBefore = os.cpus();
+      const cpuPercentBefore = Math.min((loadBefore[0] / cpusBefore.length) * 100, 100);
+      const memBefore = process.memoryUsage();
+      const memMBBefore = Math.round(memBefore.heapUsed / 1024 / 1024 * 100) / 100;
 
-      const applied: string[] = [];
-      if (target === 'all') {
-        Object.values(optimizations).forEach(opts => applied.push(...opts));
-      } else {
-        applied.push(...(optimizations[target] || []));
+      let diskLatencyBefore = -1;
+      try {
+        ensurePerfDir();
+        const probe = join(getPerfDir(), '.opt-probe');
+        const t0 = performance.now();
+        writeFileSync(probe, Buffer.alloc(4096, 0x42));
+        readFileSync(probe);
+        diskLatencyBefore = Math.round((performance.now() - t0) * 100) / 100;
+        try { const { unlinkSync } = require('node:fs'); unlinkSync(probe); } catch { /* ok */ }
+      } catch { /* ok */ }
+
+      const optimizations: Array<{ action: string; applied: boolean; effect?: string; recommendation?: string }> = [];
+      const targets = target === 'all' ? ['memory', 'latency', 'throughput'] : [target];
+
+      for (const t of targets) {
+        if (t === 'memory') {
+          if (aggressive && typeof global.gc === 'function') {
+            const heapBefore = process.memoryUsage().heapUsed;
+            global.gc();
+            const heapAfter = process.memoryUsage().heapUsed;
+            const freedMB = Math.round((heapBefore - heapAfter) / 1024 / 1024 * 100) / 100;
+            optimizations.push({ action: 'gc-collect', applied: true, effect: `Freed ${freedMB}MB heap` });
+          } else if (aggressive) {
+            optimizations.push({ action: 'gc-collect', applied: false, recommendation: 'Run with --expose-gc to enable forced garbage collection' });
+          }
+          const memPercent = ((os.totalmem() - os.freemem()) / os.totalmem()) * 100;
+          if (memPercent > 75) {
+            optimizations.push({ action: 'recommend-memory-cleanup', applied: false, recommendation: `Memory at ${Math.round(memPercent)}% - consider reducing in-memory caches or agent count` });
+          }
+          optimizations.push({ action: 'recommend-hnsw-rebuild', applied: false, recommendation: 'Rebuild HNSW index to reclaim fragmented memory' });
+        }
+
+        if (t === 'latency') {
+          if (diskLatencyBefore > 20) {
+            optimizations.push({ action: 'recommend-ssd', applied: false, recommendation: `Disk I/O latency ${diskLatencyBefore}ms is high - ensure storage is SSD-backed` });
+          }
+          optimizations.push({ action: 'recommend-batch-io', applied: false, recommendation: 'Batch file operations to reduce syscall overhead' });
+        }
+
+        if (t === 'throughput') {
+          const coreCount = cpusBefore.length;
+          const batchSize = Math.max(2, Math.floor(coreCount / 2));
+          optimizations.push({ action: 'recommend-batch-size', applied: false, recommendation: `Use batch size ${batchSize} for ${coreCount} CPU cores` });
+          if (cpuPercentBefore > 70) {
+            optimizations.push({ action: 'recommend-throttle', applied: false, recommendation: `CPU at ${Math.round(cpuPercentBefore)}% - throttle concurrent agents to avoid contention` });
+          }
+        }
       }
 
+      // If aggressive, clear perf probe files
       if (aggressive) {
-        applied.push('Enabled aggressive GC');
-        applied.push('Activated speculative execution');
+        try {
+          const dir = getPerfDir();
+          const { readdirSync, unlinkSync: ul } = require('node:fs');
+          const probes = readdirSync(dir).filter((f: string) => f.startsWith('.'));
+          probes.forEach((f: string) => { try { ul(join(dir, f)); } catch { /* ok */ } });
+          if (probes.length > 0) optimizations.push({ action: 'clear-probe-files', applied: true, effect: `Removed ${probes.length} probe file(s)` });
+        } catch { /* ok */ }
       }
+
+      // Snapshot AFTER
+      const memAfter = process.memoryUsage();
+      const loadAfter = os.loadavg();
 
       return {
+        success: true,
+        _real: true,
         target,
         aggressive,
-        applied,
-        improvements: {
-          memory: '-50%',
-          latency: '-40%',
-          throughput: '+60%',
+        before: { cpuPercent: Math.round(cpuPercentBefore * 10) / 10, memoryMB: memMBBefore, diskLatencyMs: diskLatencyBefore },
+        optimizations,
+        after: {
+          cpuPercent: Math.round(Math.min((loadAfter[0] / cpusBefore.length) * 100, 100) * 10) / 10,
+          memoryMB: Math.round(memAfter.heapUsed / 1024 / 1024 * 100) / 100,
+          diskLatencyMs: diskLatencyBefore, // same measurement window
         },
-        status: 'optimized',
-        timestamp: new Date().toISOString(),
       };
     },
   },

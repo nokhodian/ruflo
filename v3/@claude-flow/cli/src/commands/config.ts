@@ -74,25 +74,25 @@ const getCommand: Command = {
   action: async (ctx: CommandContext): Promise<CommandResult> => {
     const key = ctx.flags.key as string || ctx.args[0];
 
-    // Default config values (loaded from actual config when available)
-    const configValues: Record<string, unknown> = {
-      'version': '3.0.0',
-      'v3Mode': true,
-      'swarm.topology': 'hybrid',
-      'swarm.maxAgents': 15,
-      'swarm.autoScale': true,
-      'memory.backend': 'hybrid',
-      'memory.cacheSize': 256,
-      'mcp.transport': 'stdio',
-      'agents.defaultType': 'coder',
-      'agents.maxConcurrent': 15
-    };
-
     if (!key) {
-      // Show all config
+      // Show all config from actual config file (fall back to defaults)
+      const config = configManager.getConfig(ctx.cwd);
+      const flatEntries: Record<string, unknown> = {};
+      const flatten = (obj: Record<string, unknown>, prefix = '') => {
+        for (const [k, v] of Object.entries(obj)) {
+          const fullKey = prefix ? `${prefix}.${k}` : k;
+          if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+            flatten(v as Record<string, unknown>, fullKey);
+          } else {
+            flatEntries[fullKey] = v;
+          }
+        }
+      };
+      flatten(config);
+
       if (ctx.flags.format === 'json') {
-        output.printJson(configValues);
-        return { success: true, data: configValues };
+        output.printJson(flatEntries);
+        return { success: true, data: flatEntries };
       }
 
       output.writeln();
@@ -104,13 +104,13 @@ const getCommand: Command = {
           { key: 'key', header: 'Key', width: 25 },
           { key: 'value', header: 'Value', width: 30 }
         ],
-        data: Object.entries(configValues).map(([k, v]) => ({ key: k, value: String(v) }))
+        data: Object.entries(flatEntries).map(([k, v]) => ({ key: k, value: String(v) }))
       });
 
-      return { success: true, data: configValues };
+      return { success: true, data: flatEntries };
     }
 
-    const value = configValues[key];
+    const value = configManager.get(ctx.cwd, key);
 
     if (value === undefined) {
       output.printError(`Configuration key not found: ${key}`);
@@ -202,12 +202,74 @@ const providersCommand: Command = {
     }
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
-    const providers = [
+    const defaultProviders = [
       { name: 'anthropic', model: 'claude-3-5-sonnet-20241022', priority: 1, enabled: true, status: 'Active' },
       { name: 'openrouter', model: 'claude-3.5-sonnet', priority: 2, enabled: false, status: 'Disabled' },
       { name: 'ollama', model: 'llama3.2', priority: 3, enabled: false, status: 'Disabled' },
       { name: 'gemini', model: 'gemini-2.0-flash', priority: 4, enabled: false, status: 'Disabled' }
     ];
+
+    // Handle mutation flags
+    const addProvider = ctx.flags.add as string | undefined;
+    const removeProvider = ctx.flags.remove as string | undefined;
+    const enableProvider = ctx.flags.enable as string | undefined;
+    const disableProvider = ctx.flags.disable as string | undefined;
+
+    if (addProvider || removeProvider || enableProvider || disableProvider) {
+      // Read current providers from config
+      let currentProviders = (configManager.get(ctx.cwd, 'providers') as Array<Record<string, unknown>>) || [];
+      if (!Array.isArray(currentProviders)) currentProviders = [];
+
+      if (addProvider) {
+        const exists = currentProviders.some((p) => p.name === addProvider);
+        if (exists) {
+          output.printError(`Provider '${addProvider}' already exists`);
+          return { success: false, exitCode: 1 };
+        }
+        currentProviders.push({ name: addProvider, enabled: true, priority: currentProviders.length + 1 });
+        output.writeln(output.success(`Added provider: ${addProvider}`));
+      }
+      if (removeProvider) {
+        const before = currentProviders.length;
+        currentProviders = currentProviders.filter((p) => p.name !== removeProvider);
+        if (currentProviders.length === before) {
+          output.printError(`Provider '${removeProvider}' not found`);
+          return { success: false, exitCode: 1 };
+        }
+        output.writeln(output.success(`Removed provider: ${removeProvider}`));
+      }
+      if (enableProvider) {
+        const p = currentProviders.find((p) => p.name === enableProvider);
+        if (p) { p.enabled = true; output.writeln(output.success(`Enabled provider: ${enableProvider}`)); }
+        else { output.printError(`Provider '${enableProvider}' not found`); return { success: false, exitCode: 1 }; }
+      }
+      if (disableProvider) {
+        const p = currentProviders.find((p) => p.name === disableProvider);
+        if (p) { p.enabled = false; output.writeln(output.success(`Disabled provider: ${disableProvider}`)); }
+        else { output.printError(`Provider '${disableProvider}' not found`); return { success: false, exitCode: 1 }; }
+      }
+
+      try {
+        configManager.set(ctx.cwd, 'providers', currentProviders);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        output.printError(`Failed to save providers: ${message}`);
+        return { success: false, exitCode: 1 };
+      }
+      return { success: true, data: currentProviders };
+    }
+
+    // Read providers from config, fall back to defaults
+    const configuredProviders = configManager.get(ctx.cwd, 'providers') as Array<Record<string, unknown>> | undefined;
+    const providers = (Array.isArray(configuredProviders) && configuredProviders.length > 0)
+      ? configuredProviders.map((p, i) => ({
+          name: String(p.name || ''),
+          model: String(p.model || ''),
+          priority: Number(p.priority || i + 1),
+          enabled: p.enabled !== false,
+          status: p.enabled !== false ? 'Active' : 'Disabled',
+        }))
+      : defaultProviders;
 
     if (ctx.flags.format === 'json') {
       output.printJson(providers);

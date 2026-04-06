@@ -1557,7 +1557,7 @@ export async function loadEmbeddingModel(options?: {
       return {
         success: true,
         dimensions: 384,
-        modelName: 'all-MiniLM-L6-v2',
+        modelName: 'Xenova/all-MiniLM-L6-v2',
         loadTime: Date.now() - startTime
       };
     }

@@ -3,9 +3,9 @@
  * Provides intelligent hooks functionality via MCP protocol
  */
 
-import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync, unlinkSync, readdirSync, rmSync } from 'fs';
 import { dirname, join, resolve } from 'path';
-import type { MCPTool } from './types.js';
+import { type MCPTool, getProjectCwd } from './types.js';
 
 // Real vector search functions - lazy loaded to avoid circular imports
 let searchEntriesFn: ((options: {
@@ -829,13 +829,39 @@ export const hooksPostCommand: MCPTool = {
   handler: async (params: Record<string, unknown>) => {
     const command = params.command as string;
     const exitCode = (params.exitCode as number) || 0;
+    const success = exitCode === 0;
+
+    // Persist command outcome via AgentDB
+    let _storedIn: 'agentdb' | 'json-store' | 'none' = 'none';
+    try {
+      const bridge = await import('../memory/memory-bridge.js');
+      await bridge.bridgeStoreEntry({
+        key: `cmd-${Date.now()}`,
+        value: JSON.stringify({ command, exitCode, success }),
+        namespace: 'commands',
+        tags: [success ? 'success' : 'error'],
+      });
+      _storedIn = 'agentdb';
+    } catch {
+      // AgentDB not available — store in JSON
+      try {
+        const store = loadMemoryStore();
+        const key = `cmd-${Date.now()}`;
+        store.entries[key] = { key, value: JSON.stringify({ command, exitCode, success }), namespace: 'commands', createdAt: new Date().toISOString() } as any;
+        const memDir = resolve(MEMORY_DIR);
+        if (!existsSync(memDir)) mkdirSync(memDir, { recursive: true });
+        writeFileSync(getMemoryPath(), JSON.stringify(store, null, 2), 'utf-8');
+        _storedIn = 'json-store';
+      } catch { /* non-critical */ }
+    }
 
     return {
-      recorded: true,
+      recorded: _storedIn !== 'none',
       command,
       exitCode,
-      success: exitCode === 0,
+      success,
       timestamp: new Date().toISOString(),
+      _storedIn,
     };
   },
 };
@@ -1028,31 +1054,47 @@ export const hooksMetrics: MCPTool = {
   handler: async (params: Record<string, unknown>) => {
     const period = (params.period as string) || '24h';
 
+    // Try to read real counts from memory store
+    const store = loadMemoryStore();
+    const entries = Object.values(store.entries);
+
+    // Count patterns by looking at stored pattern entries
+    const patternEntries = entries.filter(e => e.key.includes('pattern'));
+    const routingEntries = entries.filter(e => e.key.includes('route') || e.key.includes('routing'));
+    const taskEntries = entries.filter(e => e.key.includes('task'));
+
+    if (entries.length === 0) {
+      return {
+        _real: true,
+        _note: 'No metrics data collected yet. Data populates from hooks_post-task, hooks_post-edit, hooks_post-command, and hooks_route calls.',
+        period,
+        patterns: { total: 0, successful: 0, failed: 0, avgConfidence: null },
+        agents: { routingAccuracy: null, totalRoutes: 0, topAgent: null },
+        commands: { totalExecuted: 0, successRate: null, avgRiskScore: null },
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
     return {
       period,
       patterns: {
-        total: 15,
-        successful: 12,
-        failed: 3,
-        avgConfidence: 0.85,
+        total: patternEntries.length,
+        successful: null,
+        failed: null,
+        avgConfidence: null,
       },
       agents: {
-        routingAccuracy: 0.87,
-        totalRoutes: 42,
-        topAgent: 'coder',
+        routingAccuracy: null,
+        totalRoutes: routingEntries.length,
+        topAgent: null,
       },
       commands: {
-        totalExecuted: 128,
-        successRate: 0.94,
-        avgRiskScore: 0.15,
+        totalExecuted: taskEntries.length,
+        successRate: null,
+        avgRiskScore: null,
       },
-      performance: {
-        flashAttention: '2.49x-7.47x speedup',
-        memoryReduction: '50-75% reduction',
-        searchImprovement: '150x-12,500x faster',
-        tokenReduction: '32.3% fewer tokens',
-      },
-      status: 'healthy',
+      dataSource: 'memory-store',
+      entriesFound: entries.length,
       lastUpdated: new Date().toISOString(),
     };
   },
@@ -1326,10 +1368,27 @@ export const hooksExplain: MCPTool = {
       if (taskLower.includes(pattern)) {
         matchedPatterns.push({
           pattern,
-          matchScore: 0.85 + Math.random() * 0.1,
-          examples: [`Previous ${pattern} task completed successfully`, `${pattern} patterns from repository analysis`],
+          matchScore: pattern.length / Math.max(taskLower.length, 1), // real ratio: pattern length vs task length
+          examples: [`Keyword "${pattern}" matched in task description`],
         });
       }
+    }
+
+    // Calculate real historical success rate from routing outcomes file
+    let historicalSuccess: number | null = null;
+    let historicalNote = 'No historical data yet';
+    try {
+      const outcomesPath = join(resolve('.'), '.claude-flow/routing-outcomes.json');
+      if (existsSync(outcomesPath)) {
+        const data = JSON.parse(readFileSync(outcomesPath, 'utf-8'));
+        const outcomes: Array<{ success: boolean }> = data.outcomes || [];
+        if (outcomes.length > 0) {
+          historicalSuccess = outcomes.filter(o => o.success).length / outcomes.length;
+          historicalNote = `Calculated from ${outcomes.length} recorded outcomes`;
+        }
+      }
+    } catch {
+      // File unreadable; leave as null
     }
 
     return {
@@ -1338,8 +1397,8 @@ export const hooksExplain: MCPTool = {
         `The task contains keywords that match the "${suggestion.agents[0]}" specialization with ${(suggestion.confidence * 100).toFixed(0)}% confidence.`,
       factors: [
         { factor: 'Keyword Match', weight: 0.4, value: suggestion.confidence, impact: 'Primary routing signal' },
-        { factor: 'Historical Success', weight: 0.3, value: 0.87, impact: 'Past task success rate' },
-        { factor: 'Agent Availability', weight: 0.2, value: 0.95, impact: 'All suggested agents available' },
+        { factor: 'Historical Success', weight: 0.3, value: historicalSuccess, impact: historicalNote },
+        { factor: 'Agent Availability', weight: 0.2, value: null, impact: 'Agent availability tracking not implemented' },
         { factor: 'Task Complexity', weight: 0.1, value: task.length > 100 ? 0.8 : 0.3, impact: 'Complexity assessment' },
       ],
       patterns: matchedPatterns.length > 0 ? matchedPatterns : [
@@ -1351,7 +1410,9 @@ export const hooksExplain: MCPTool = {
         reasoning: [
           `Task analysis identified ${matchedPatterns.length || 1} relevant patterns`,
           `"${suggestion.agents[0]}" has highest capability match for this task type`,
-          `Historical success rate for similar tasks: 87%`,
+          historicalSuccess !== null
+            ? `Historical success rate for similar tasks: ${(historicalSuccess * 100).toFixed(0)}%`
+            : `No historical outcome data available yet`,
           `Confidence threshold met (${(suggestion.confidence * 100).toFixed(0)}% >= 70%)`,
         ],
       },
@@ -1372,30 +1433,83 @@ export const hooksPretrain: MCPTool = {
     },
   },
   handler: async (params: Record<string, unknown>) => {
-    const path = (params.path as string) || '.';
+    const repoPath = resolve((params.path as string) || '.');
     const depth = (params.depth as string) || 'medium';
-    const startTime = Date.now();
+    const startTime = performance.now();
 
-    // Scale analysis results by depth level
-    const multiplier = depth === 'deep' ? 3 : depth === 'shallow' ? 1 : 2;
+    // Real file scanning — count files by extension, extract patterns
+    const { readdirSync, statSync } = await import('node:fs');
+    const extCounts: Record<string, number> = {};
+    let filesAnalyzed = 0;
+    let totalLines = 0;
+    const maxDepth = depth === 'shallow' ? 2 : depth === 'deep' ? 6 : 4;
+    const patterns: string[] = [];
+
+    const scan = (dir: string, currentDepth: number) => {
+      if (currentDepth > maxDepth) return;
+      try {
+        const entries = readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist') continue;
+          const full = join(dir, entry.name);
+          if (entry.isDirectory()) {
+            scan(full, currentDepth + 1);
+          } else if (entry.isFile()) {
+            const ext = entry.name.includes('.') ? entry.name.slice(entry.name.lastIndexOf('.')) : '';
+            if (ext) extCounts[ext] = (extCounts[ext] || 0) + 1;
+            filesAnalyzed++;
+            // For code files, count lines and extract imports
+            if (['.ts', '.js', '.py', '.go', '.rs', '.java'].includes(ext)) {
+              try {
+                const content = readFileSync(full, 'utf-8');
+                const lines = content.split('\n');
+                totalLines += lines.length;
+                // Extract import patterns (first 50 files max for performance)
+                if (filesAnalyzed <= 50) {
+                  for (const line of lines.slice(0, 30)) {
+                    if (line.startsWith('import ') || line.startsWith('from ') || line.startsWith('const ') && line.includes('require(')) {
+                      const trimmed = line.trim();
+                      if (trimmed.length < 120 && !patterns.includes(trimmed)) patterns.push(trimmed);
+                      if (patterns.length >= 100) break;
+                    }
+                  }
+                }
+              } catch { /* skip unreadable */ }
+            }
+          }
+        }
+      } catch { /* skip inaccessible dirs */ }
+    };
+
+    scan(repoPath, 0);
+    const elapsed = Math.round(performance.now() - startTime);
+
+    // Store extracted patterns in AgentDB
+    let patternsStored = 0;
+    try {
+      const bridge = await import('../memory/memory-bridge.js');
+      await bridge.bridgeStoreEntry({
+        key: `pretrain-${Date.now()}`,
+        value: JSON.stringify({ filesAnalyzed, totalLines, topExtensions: Object.entries(extCounts).sort((a, b) => b[1] - a[1]).slice(0, 10), importPatterns: patterns.slice(0, 20) }),
+        namespace: 'pretrain',
+        tags: ['pretrain', depth],
+      });
+      patternsStored = patterns.length;
+    } catch { /* AgentDB not available */ }
 
     return {
-      path,
+      success: true,
+      _real: true,
+      path: repoPath,
       depth,
+      durationMs: elapsed,
       stats: {
-        filesAnalyzed: 42 * multiplier,
-        patternsExtracted: 15 * multiplier,
-        strategiesLearned: 8 * multiplier,
-        trajectoriesEvaluated: 23 * multiplier,
-        contradictionsResolved: 3,
+        filesAnalyzed,
+        totalLines,
+        patternsExtracted: patterns.length,
+        patternsStored,
+        fileTypes: Object.entries(extCounts).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([ext, count]) => ({ ext, count })),
       },
-      pipeline: {
-        retrieve: { status: 'completed', duration: 120 * multiplier },
-        judge: { status: 'completed', duration: 180 * multiplier },
-        distill: { status: 'completed', duration: 90 * multiplier },
-        consolidate: { status: 'completed', duration: 60 * multiplier },
-      },
-      duration: Date.now() - startTime + (500 * multiplier),
     };
   },
 };
@@ -1511,12 +1625,14 @@ export const hooksTransfer: MCPTool = {
       'agent-success': sourceEntries.filter(e => e.key.includes('agent') || e.metadata?.type === 'agent-success').length,
     };
 
-    // If source has no patterns, provide demo data
+    // If source has no patterns, report honestly instead of substituting demo data
     if (Object.values(byType).every(v => v === 0)) {
-      byType['file-patterns'] = 8;
-      byType['task-routing'] = 12;
-      byType['command-risk'] = 5;
-      byType['agent-success'] = 15;
+      return {
+        success: false,
+        message: 'No patterns found in source project',
+        sourcePath,
+        transferred: 0,
+      };
     }
 
     if (filter) {
@@ -1528,6 +1644,7 @@ export const hooksTransfer: MCPTool = {
     const total = Object.values(byType).reduce((a, b) => a + b, 0);
 
     return {
+      success: true,
       sourcePath,
       transferred: {
         total,
@@ -1542,7 +1659,7 @@ export const hooksTransfer: MCPTool = {
         avgConfidence: 0.82 + (minConfidence > 0.8 ? 0.1 : 0),
         avgAge: '3 days',
       },
-      dataSource: Object.values(sourceStore.entries).length > 0 ? 'source-project' : 'demo-data',
+      dataSource: 'source-project',
     };
   },
 };
@@ -1570,7 +1687,7 @@ export const hooksSessionStart: MCPTool = {
       try {
         // Dynamic import to avoid circular dependencies
         const { startDaemon } = await import('../services/worker-daemon.js');
-        const daemon = await startDaemon(process.cwd());
+        const daemon = await startDaemon(getProjectCwd());
         const status = daemon.getStatus();
         daemonStatus = {
           started: true,
@@ -1652,6 +1769,26 @@ export const hooksSessionEnd: MCPTool = {
       }
     }
 
+    // Read actual counts from stores
+    const store = loadMemoryStore();
+    const allEntries = Object.values(store.entries);
+    const taskCount = allEntries.filter(e => e.key.includes('task')).length;
+    const agentCount = allEntries.filter(e => e.key.includes('agent')).length;
+    const patternCount = allEntries.filter(e => e.key.includes('pattern')).length;
+    const trajectoryCount = activeTrajectories.size;
+
+    // Check for pending-insights.jsonl
+    let insightCount = 0;
+    try {
+      const insightsPath = resolve(join('.claude-flow', 'data', 'pending-insights.jsonl'));
+      if (existsSync(insightsPath)) {
+        const content = readFileSync(insightsPath, 'utf-8').trim();
+        insightCount = content ? content.split('\n').length : 0;
+      }
+    } catch {
+      // File not available
+    }
+
     // Phase 5: Wire ReflexionMemory session end + NightlyLearner consolidation via bridge
     let sessionPersistence: { controller: string; persisted: boolean } | null = null;
     try {
@@ -1659,8 +1796,8 @@ export const hooksSessionEnd: MCPTool = {
       const result = await bridge.bridgeSessionEnd({
         sessionId,
         summary: saveState ? 'Session ended with state saved' : 'Session ended',
-        tasksCompleted: 12,
-        patternsLearned: 8,
+        tasksCompleted: taskCount,
+        patternsLearned: patternCount,
       });
       if (result) {
         sessionPersistence = {
@@ -1679,17 +1816,15 @@ export const hooksSessionEnd: MCPTool = {
       daemon: { stopped: daemonStopped },
       sessionPersistence: sessionPersistence || { controller: 'none', persisted: false },
       summary: {
-        tasksExecuted: 12,
-        tasksSucceeded: 10,
-        tasksFailed: 2,
-        commandsExecuted: 45,
-        filesModified: 23,
-        agentsSpawned: 5,
+        tasksExecuted: taskCount,
+        filesModified: 0,
+        agentsSpawned: agentCount,
+        pendingInsights: insightCount,
+        memoryEntries: allEntries.length,
       },
       learningUpdates: {
-        patternsLearned: 8,
-        trajectoriesRecorded: 12,
-        confidenceImproved: 0.05,
+        patternsLearned: patternCount,
+        trajectoriesRecorded: trajectoryCount,
       },
     };
   },
@@ -1888,10 +2023,10 @@ export const hooksIntelligence: MCPTool = {
         },
         embeddings: {
           provider: 'transformers',
-          model: 'all-MiniLM-L6-v2',
+          model: 'Xenova/all-MiniLM-L6-v2',
           dimension: 384,
           implemented: true,
-          note: 'Real ONNX embeddings via all-MiniLM-L6-v2',
+          note: 'Real ONNX embeddings via Xenova/all-MiniLM-L6-v2',
         },
       },
       realMetrics: {
@@ -1923,13 +2058,62 @@ export const hooksIntelligenceReset: MCPTool = {
     properties: {},
   },
   handler: async () => {
+    const cwd = getProjectCwd();
+    const cleared = {
+      trajectories: 0,
+      patterns: 0,
+      dataFiles: 0,
+      neuralFiles: 0,
+    };
+    const deletedFiles: string[] = [];
+
+    // Clear intelligence data files if they exist
+    const dataFiles = [
+      join(cwd, '.claude-flow', 'data', 'auto-memory-store.json'),
+      join(cwd, '.claude-flow', 'data', 'graph-state.json'),
+      join(cwd, '.claude-flow', 'data', 'ranked-context.json'),
+    ];
+
+    for (const filePath of dataFiles) {
+      if (existsSync(filePath)) {
+        try {
+          unlinkSync(filePath);
+          cleared.dataFiles++;
+          deletedFiles.push(filePath);
+        } catch {
+          // Skip files that cannot be deleted
+        }
+      }
+    }
+
+    // Clear neural directory if it exists
+    const neuralDir = join(cwd, '.claude-flow', 'neural');
+    if (existsSync(neuralDir)) {
+      try {
+        const files = readdirSync(neuralDir);
+        for (const file of files) {
+          try {
+            const filePath = join(neuralDir, file);
+            unlinkSync(filePath);
+            cleared.neuralFiles++;
+            deletedFiles.push(filePath);
+          } catch {
+            // Skip files that cannot be deleted
+          }
+        }
+      } catch {
+        // Directory read failed
+      }
+    }
+
+    // Clear in-memory trajectories
+    cleared.trajectories = activeTrajectories.size;
+    activeTrajectories.clear();
+
     return {
       reset: true,
-      cleared: {
-        trajectories: 156,
-        patterns: 89,
-        hnswIndex: 12500,
-      },
+      cleared,
+      deletedFiles,
       timestamp: new Date().toISOString(),
     };
   },
@@ -2684,15 +2868,9 @@ export const hooksIntelligenceAttention: MCPTool = {
       }
     }
 
-    // If no real implementation worked, use placeholder
+    // If no real implementation worked, return empty with honest marker
     if (results.length === 0) {
-      for (let i = 0; i < topK; i++) {
-        results.push({
-          index: i,
-          weight: Math.exp(-i * 0.5) / (1 + Math.exp(-i * 0.5)),
-          pattern: `Attention target #${i + 1}`,
-        });
-      }
+      implementation = 'none';
     }
 
     const computeTimeMs = performance.now() - startTime;
@@ -2703,8 +2881,10 @@ export const hooksIntelligenceAttention: MCPTool = {
       results,
       stats: {
         computeTimeMs,
-        speedup: mode === 'flash' ? '2.49x-7.47x' : mode === 'moe' ? '1.5x-3x' : '1.5x-2x',
-        memoryReduction: mode === 'flash' ? '50-75%' : '25-40%',
+        speedup: implementation.startsWith('real-') ? (mode === 'flash' ? '2.49x-7.47x' : '1.5x-3x') : null,
+        memoryReduction: implementation.startsWith('real-') ? (mode === 'flash' ? '50-75%' : '25-40%') : null,
+        _stub: implementation === 'none',
+        _note: implementation === 'none' ? 'No attention backend available. Install @ruvector/attention for real computation.' : undefined,
       },
       implementation,
     };

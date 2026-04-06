@@ -26,6 +26,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { trackRequest } from './mcp-tools/request-tracker.js';
 
 // ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -318,6 +319,39 @@ export class MCPServerManager extends EventEmitter {
     console.error(
       `[${new Date().toISOString()}] INFO [claude-flow-mcp] (${sessionId}) Starting in stdio mode`
     );
+
+    // Auto-initialize memory database before tools are registered (#1524)
+    // This ensures memory_store and other memory tools work immediately
+    // without waiting for the first tool call to trigger lazy init.
+    try {
+      const { initializeMemoryDatabase, checkMemoryInitialization } = await import('./memory/memory-initializer.js');
+      const status = await checkMemoryInitialization();
+      if (!status.initialized) {
+        console.error(
+          `[${new Date().toISOString()}] INFO [claude-flow-mcp] (${sessionId}) Auto-initializing memory database...`
+        );
+        const result = await initializeMemoryDatabase({ force: false, verbose: false });
+        if (result.success) {
+          console.error(
+            `[${new Date().toISOString()}] INFO [claude-flow-mcp] (${sessionId}) Memory database initialized at ${result.dbPath}`
+          );
+        } else if (result.error && !result.error.includes('already exists')) {
+          console.error(
+            `[${new Date().toISOString()}] WARN [claude-flow-mcp] (${sessionId}) Memory database init returned: ${result.error}`
+          );
+        }
+      } else {
+        console.error(
+          `[${new Date().toISOString()}] INFO [claude-flow-mcp] (${sessionId}) Memory database already initialized (v${status.version || 'unknown'})`
+        );
+      }
+    } catch (memInitError) {
+      // Graceful degradation: server continues even if memory init fails.
+      // Memory tools will attempt lazy init on first call via ensureInitialized().
+      console.error(
+        `[${new Date().toISOString()}] WARN [claude-flow-mcp] (${sessionId}) Memory auto-init failed (tools will retry on first call): ${memInitError instanceof Error ? memInitError.message : String(memInitError)}`
+      );
+    }
     console.error(JSON.stringify({
       arch: process.arch,
       mode: 'mcp-stdio',
@@ -475,12 +509,14 @@ export class MCPServerManager extends EventEmitter {
 
           try {
             const result = await callMCPTool(toolName, toolParams, { sessionId });
+            trackRequest(toolName, true);
             return {
               jsonrpc: '2.0',
               id: message.id,
               result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] },
             };
           } catch (error) {
+            trackRequest(toolName, false);
             return {
               jsonrpc: '2.0',
               id: message.id,
@@ -653,7 +689,7 @@ export class MCPServerManager extends EventEmitter {
     }
     // Also clean up legacy PID file location from older versions
     try {
-      const legacyPath = path.join(process.cwd(), '.claude-flow', 'mcp-server.pid');
+      const legacyPath = path.join(process.env.CLAUDE_FLOW_CWD || process.cwd(), '.claude-flow', 'mcp-server.pid');
       if (legacyPath !== this.options.pidFile) {
         await fs.promises.unlink(legacyPath);
       }

@@ -1018,8 +1018,8 @@ const pretrainCommand: Command = {
       name: 'embedding-model',
       description: 'ONNX embedding model',
       type: 'string',
-      default: 'all-MiniLM-L6-v2',
-      choices: ['all-MiniLM-L6-v2', 'all-mpnet-base-v2']
+      default: 'Xenova/all-MiniLM-L6-v2',
+      choices: ['Xenova/all-MiniLM-L6-v2', 'Xenova/all-mpnet-base-v2']
     },
     {
       name: 'file-types',
@@ -1038,7 +1038,7 @@ const pretrainCommand: Command = {
     const repoPath = ctx.flags.path as string || '.';
     const depth = ctx.flags.depth as string || 'medium';
     const withEmbeddings = ctx.flags['with-embeddings'] !== false && ctx.flags.withEmbeddings !== false;
-    const embeddingModel = (ctx.flags['embedding-model'] || ctx.flags.embeddingModel || 'all-MiniLM-L6-v2') as string;
+    const embeddingModel = (ctx.flags['embedding-model'] || ctx.flags.embeddingModel || 'Xenova/all-MiniLM-L6-v2') as string;
     const fileTypes = (ctx.flags['file-types'] || ctx.flags.fileTypes || 'ts,js,py,md,json') as string;
 
     output.writeln();
@@ -4542,9 +4542,10 @@ const tokenOptimizeCommand: Command = {
         output.printInfo(`Retrieving compact context for: "${query}"`);
         const memories = await reasoningBank.retrieveMemories(query, { k: 5 });
         const compactPrompt = reasoningBank.formatMemoriesForPrompt ? reasoningBank.formatMemoriesForPrompt(memories) : '';
-        const baseline = 1000;
+        // Estimate based on actual query vs compact prompt size difference
+        const queryTokenEstimate = Math.ceil((query?.length || 0) / 4);
         const used = Math.ceil((compactPrompt?.length || 0) / 4);
-        const tokensSaved = Math.max(0, baseline - used);
+        const tokensSaved = Math.max(0, queryTokenEstimate - used);
         stats.totalTokensSaved += tokensSaved;
         stats.memoriesRetrieved += Array.isArray(memories) ? memories.length : 0;
         output.writeln(`  Memories found: ${Array.isArray(memories) ? memories.length : 0}`);
