@@ -809,6 +809,107 @@ const coverageRouteCommand: Command = {
 };
 
 // ============================================================================
+// Semantic Route Subcommand (RouteLayer — cosine similarity)
+// ============================================================================
+
+const semanticRouteCommand: Command = {
+  name: 'semantic',
+  aliases: ['sem'],
+  description: 'Route a task to the optimal agent using cosine similarity (RouteLayer)',
+  options: [
+    {
+      name: 'task',
+      short: 't',
+      description: 'Task description to route',
+      type: 'string',
+      required: true,
+    },
+    {
+      name: 'debug',
+      short: 'd',
+      description: 'Include all route scores in the output',
+      type: 'boolean',
+      default: false,
+    },
+    {
+      name: 'json',
+      short: 'j',
+      description: 'Output in JSON format',
+      type: 'boolean',
+      default: false,
+    },
+  ],
+  examples: [
+    { command: 'claude-flow route semantic -t "audit the API for injection risks"', description: 'Semantic routing' },
+    { command: 'claude-flow route semantic -t "write unit tests" --debug', description: 'Show all route scores' },
+  ],
+  action: async (ctx: CommandContext): Promise<CommandResult> => {
+    const taskDescription = ctx.flags.task as string;
+    const debug = ctx.flags.debug as boolean;
+    const jsonOutput = ctx.flags.json as boolean;
+
+    if (!taskDescription) {
+      output.printError('Task description is required. Use --task or -t flag.');
+      return { success: false, exitCode: 1 };
+    }
+
+    const spinner = output.createSpinner({ text: 'Computing semantic route...', spinner: 'dots' });
+    spinner.start();
+
+    try {
+      const { RouteLayer, ALL_ROUTES } = await import('@claude-flow/routing');
+      const layer = new RouteLayer({ routes: ALL_ROUTES, debug });
+      const result = await layer.route(taskDescription);
+
+      spinner.succeed(`Routed to ${result.agentSlug}`);
+
+      if (jsonOutput) {
+        output.printJson(result);
+      } else {
+        output.writeln();
+        const confidencePct = (result.confidence * 100).toFixed(1);
+        const methodColor = result.method === 'semantic'
+          ? (s: string) => output.success(s)
+          : (s: string) => output.warning(s);
+
+        output.printBox([
+          `Task: ${taskDescription}`,
+          ``,
+          `Agent: ${output.highlight(result.agentSlug)}`,
+          `Route: ${result.routeName}`,
+          `Confidence: ${methodColor(`${confidencePct}%`)}`,
+          `Method: ${methodColor(result.method)}`,
+        ].join('\n'), 'Semantic Routing Result');
+
+        if (debug && result.allScores && result.allScores.length > 0) {
+          output.writeln();
+          output.writeln(output.bold('All Route Scores (top 10):'));
+          const top10 = result.allScores.slice(0, 10);
+          output.printTable({
+            columns: [
+              { key: 'route', header: 'Route', width: 30 },
+              { key: 'agent', header: 'Agent Slug', width: 35 },
+              { key: 'score', header: 'Score', width: 10, align: 'right' },
+            ],
+            data: top10.map(s => ({
+              route: s.routeName,
+              agent: s.agentSlug,
+              score: s.score.toFixed(4),
+            })),
+          });
+        }
+      }
+
+      return { success: true, data: result };
+    } catch (error) {
+      spinner.fail('Semantic routing failed');
+      output.printError(error instanceof Error ? error.message : String(error));
+      return { success: false, exitCode: 1 };
+    }
+  },
+};
+
+// ============================================================================
 // Main Route Command
 // ============================================================================
 
@@ -817,6 +918,7 @@ export const routeCommand: Command = {
   description: 'Intelligent task-to-agent routing using Q-Learning',
   subcommands: [
     routeTaskCommand,
+    semanticRouteCommand,
     listAgentsCommand,
     statsCommand,
     feedbackCommand,

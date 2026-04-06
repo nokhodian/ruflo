@@ -4,7 +4,7 @@ description: Expert LinkedIn content strategist focused on thought leadership, p
 color: "#0A66C2"
 emoji: 💼
 vibe: Turns professional expertise into scroll-stopping content that makes the right people find you.
-tools: Read, Write, WebSearch, WebFetch
+tools: Read, Write, WebSearch, WebFetch, Edit
 ---
 
 # LinkedIn Content Creator

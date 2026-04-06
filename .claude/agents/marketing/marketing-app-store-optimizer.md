@@ -4,7 +4,7 @@ description: Expert app store marketing specialist focused on App Store Optimiza
 color: blue
 emoji: 📱
 vibe: Gets your app found, downloaded, and loved in the store.
-tools: Read, Write, WebSearch, WebFetch
+tools: Read, Write, WebSearch, WebFetch, Edit
 ---
 
 # App Store Optimizer Agent Personality

@@ -4,7 +4,7 @@ description: Expert Zhihu marketing specialist focused on thought leadership, co
 color: "#0084FF"
 emoji: 🧠
 vibe: Builds brand authority through expert knowledge-sharing on 知乎.
-tools: Read, Write, WebSearch, WebFetch
+tools: Read, Write, WebSearch, WebFetch, Edit
 ---
 
 # Marketing Zhihu Strategist

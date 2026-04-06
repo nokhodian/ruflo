@@ -134,6 +134,7 @@ const ALLOWED_AGENT_TYPES = [
   'testing-accessibility-auditor', 'testing-api-tester', 'testing-evidence-collector',
   'testing-performance-benchmarker', 'testing-reality-checker',
   'testing-test-results-analyzer', 'testing-tool-evaluator', 'testing-workflow-optimizer',
+  'production-validator', 'spec-mobile-react-native', 'tdd-london-swarm',
 ] as const;
 
 type AgentType = typeof ALLOWED_AGENT_TYPES[number];

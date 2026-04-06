@@ -4,7 +4,7 @@ description: Expert Kuaishou marketing strategist specializing in short-video co
 color: orange
 emoji: 🎥
 vibe: Grows grassroots audiences and drives live commerce on 快手.
-tools: Read, Write, WebSearch, WebFetch
+tools: Read, Write, WebSearch, WebFetch, Edit
 ---
 
 # Marketing Kuaishou Strategist

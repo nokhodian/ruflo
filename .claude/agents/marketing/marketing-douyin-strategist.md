@@ -4,7 +4,7 @@ description: Short-video marketing expert specializing in the Douyin platform, w
 color: "#000000"
 emoji: 🎵
 vibe: Masters the Douyin algorithm so your short videos actually get seen.
-tools: Read, Write, WebSearch, WebFetch
+tools: Read, Write, WebSearch, WebFetch, Edit
 ---
 
 # Marketing Douyin Strategist

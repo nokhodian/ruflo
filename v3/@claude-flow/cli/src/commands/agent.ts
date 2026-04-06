@@ -131,8 +131,24 @@ const spawnCommand: Command = {
       });
     }
 
+    // Semantic routing: if --type absent but --task provided, use RouteLayer
+    const taskDescription = ctx.flags.task as string | undefined;
+    if (!agentType && taskDescription) {
+      try {
+        const { RouteLayer, ALL_ROUTES } = await import('@claude-flow/routing');
+        const layer = new RouteLayer({ routes: ALL_ROUTES });
+        const routeResult = await layer.route(taskDescription);
+        agentType = routeResult.agentSlug;
+        process.stderr.write(
+          `[route] ${routeResult.method}: "${agentType}" (confidence: ${(routeResult.confidence * 100).toFixed(1)}%)\n`
+        );
+      } catch {
+        // RouteLayer unavailable — fall through to error below
+      }
+    }
+
     if (!agentType) {
-      output.printError('Agent type is required. Use --type or -t flag.');
+      output.printError('Agent type is required. Use --type or -t flag, or provide --task for auto-routing.');
       return { success: false, exitCode: 1 };
     }
 

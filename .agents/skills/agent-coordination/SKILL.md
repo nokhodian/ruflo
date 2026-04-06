@@ -102,7 +102,35 @@ npx claude-flow agent stop --id agent-123
 npx claude-flow agent pool --size 5 --type coder
 ```
 
-## Routing Codes
+## Routing (Current: Semantic RouteLayer)
+
+Use `npx claude-flow@v3alpha route --task "your task description"` to resolve the optimal agent.
+The RouteLayer computes cosine similarity against 10–15 representative utterances per agent category,
+covering all 40+ route definitions across core, security, engineering, testing, design, marketing,
+product, specialized, and game-dev categories.
+
+```bash
+# Route a task and get the best agent slug + confidence
+npx claude-flow@v3alpha route task "audit the JWT token handling for vulnerabilities"
+# → { agentSlug: "engineering-security-engineer", confidence: 0.87, method: "semantic" }
+
+# Spawn with auto-routing (omit --type to trigger RouteLayer)
+npx claude-flow@v3alpha agent spawn --task "implement the password reset feature"
+```
+
+Import in TypeScript:
+```typescript
+import { RouteLayer, ALL_ROUTES } from '@claude-flow/routing';
+const layer = new RouteLayer({ routes: ALL_ROUTES });
+const result = await layer.route(taskDescription);
+// result.agentSlug, result.confidence, result.method
+```
+
+## Routing Codes (DEPRECATED — use RouteLayer above)
+
+> **Deprecated**: The integer codes below are kept as a legacy reference only.
+> They cover only 5 task types out of 40+ available agent categories.
+> Use the Semantic RouteLayer instead.
 
 | Code | Task | Agents |
 |------|------|--------|
